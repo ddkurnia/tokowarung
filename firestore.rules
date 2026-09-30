@@ -85,8 +85,8 @@ service cloud.firestore {
                     && request.resource.data.uid == userId;
 
       allow update: if isOwnData(userId)
-                    && !('role' in request.resource.data.diff().affectedKeys()) // TIDAK boleh ganti role sendiri
-                    && !('status' in request.resource.data.diff().affectedKeys()) // TIDAK boleh ganti status sendiri
+                    && !('role' in request.resource.data.diff(resource.data).affectedKeys()) // TIDAK boleh ganti role sendiri
+                    && !('status' in request.resource.data.diff(resource.data).affectedKeys()) // TIDAK boleh ganti status sendiri
                     || isAdmin();
 
       allow delete: if isSuperAdmin();
@@ -103,9 +103,9 @@ service cloud.firestore {
       // Seller bisa update profile miliknya, TAPI tidak boleh ubah field sensitif
       // (verificationStatus, violationLevel, violationScore, identityNumber, bankAccount)
       allow update: if isOwnData(sellerId)
-                    && !('verificationStatus' in request.resource.data.diff().affectedKeys())
-                    && !('violationLevel' in request.resource.data.diff().affectedKeys())
-                    && !('violationScore' in request.resource.data.diff().affectedKeys())
+                    && !('verificationStatus' in request.resource.data.diff(resource.data).affectedKeys())
+                    && !('violationLevel' in request.resource.data.diff(resource.data).affectedKeys())
+                    && !('violationScore' in request.resource.data.diff(resource.data).affectedKeys())
                     || isAdmin();
 
       allow delete: if isSuperAdmin();
@@ -120,10 +120,10 @@ service cloud.firestore {
       // Courier bisa update beberapa field sendiri (isOnline, currentLocation, currentLoad)
       // Status verifikasi & violation hanya admin yang bisa ubah
       allow update: if isOwnData(courierId)
-                    && !('status' in request.resource.data.diff().affectedKeys())
-                    && !('violationLevel' in request.resource.data.diff().affectedKeys())
-                    && !('totalDeliveries' in request.resource.data.diff().affectedKeys())
-                    && !('rating' in request.resource.data.diff().affectedKeys())
+                    && !('status' in request.resource.data.diff(resource.data).affectedKeys())
+                    && !('violationLevel' in request.resource.data.diff(resource.data).affectedKeys())
+                    && !('totalDeliveries' in request.resource.data.diff(resource.data).affectedKeys())
+                    && !('rating' in request.resource.data.diff(resource.data).affectedKeys())
                     && request.resource.data.currentLocation.keys().hasAll(['lat', 'lng'])
                     || isAdmin();
 
@@ -301,7 +301,7 @@ service cloud.firestore {
                     && isNonEmptyString(request.resource.data.comment, 500);
       allow update: if isOwnData(resource.data.buyerId) && (
         // Hanya boleh update comment, tidak boleh ubah rating utk hindari manipulasi
-        !('rating' in request.resource.data.diff().affectedKeys())
+        !('rating' in request.resource.data.diff(resource.data).affectedKeys())
       );
       allow delete: if isAdmin() || isSuperAdmin();
     }
@@ -317,9 +317,9 @@ service cloud.firestore {
     // ----- DISPUTES -----
     match /disputes/{disputeId} {
       allow read: if isSignedIn() && (
-        resource.data.participants.toArray().any(v => v == uid()) || isAdmin()
+        uid() in resource.data.participants || isAdmin()
       );
-      allow create: if isSignedIn() && request.resource.data.participants.toArray().any(v => v == uid());
+      allow create: if isSignedIn() && (uid() in request.resource.data.participants);
       allow update: if isAdmin();
       allow delete: if false;
     }
