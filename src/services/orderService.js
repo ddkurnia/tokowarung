@@ -226,3 +226,247 @@ export async function cancelOrder(orderId, actorId) {
 
   await updateOrderStatus(orderId, 'CANCELLED', actorId, 'Order cancelled');
 }
+
+// ============================================
+// COURIER ASSIGNMENT & VERIFICATION (Phase 2.5)
+// ============================================
+
+/**
+ * Auto-assign courier saat order status = READY_FOR_PICKUP.
+ * Client-side fallback (no Cloud Function — proper solution needs Blaze plan).
+ * Logic: cari courier ONLINE_AVAILABLE di zone yang sama (or any online courier).
+ * Set order.courierId, status = COURIER_ASSIGNED.
+ * Generate pickupCode untuk verifikasi.
+ *
+ * @param {string} orderId
+ * @param {string} sellerId - untuk audit log
+ * @returns {Promise<{courierId: string, pickupCode: string}>}
+ */
+export async function autoAssignCourier(orderId, sellerId) {
+  const orderRef = doc(db, COLLECTION.ORDERS, orderId);
+  const orderSnap = await getDoc(orderRef);
+  if (!orderSnap.exists()) throw new Error('Order tidak ditemukan.');
+  const order = orderSnap.data();
+
+  if (order.orderStatus !== 'READY_FOR_PICKUP') {
+    throw new Error('Order harus berstatus READY_FOR_PICKUP untuk assign courier.');
+  }
+  if (order.courierId) {
+    throw new Error('Courier sudah ditugaskan untuk order ini.');
+  }
+
+  // Find online & available couriers (max 1 active order per courier in MVP)
+  const q = query(
+    collection(db, COLLECTION.COURIERS),
+    where('isOnline', '==', true),
+    where('status', '==', 'ONLINE_AVAILABLE'),
+    limit(5)
+  );
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    throw new Error('Tidak ada kurir online saat ini. Coba lagi nanti atau admin akan assign manual.');
+  }
+
+  // Pick first available courier (simplified — proper dispatch engine pakai: distance, load, rating, dll)
+  const courierDoc = snap.docs[0];
+  const courierId = courierDoc.id;
+
+  // Generate 6-digit pickup code
+  const pickupCode = String(Math.floor(100000 + Math.random() * 900000));
+
+  await updateDoc(orderRef, {
+    courierId,
+    orderStatus: 'COURIER_ASSIGNED',
+    pickupCode,
+    'timestamps.COURIER_ASSIGNED': serverTimestamp(),
+    'timestamps.updatedAt': serverTimestamp(),
+    statusHistory: arrayUnion({
+      from: 'READY_FOR_PICKUP',
+      to: 'COURIER_ASSIGNED',
+      actorId: sellerId,
+      note: `Auto-assigned courier ${courierId.slice(0, 8)}... Pickup code generated`,
+      at: new Date().toISOString(),
+    }),
+  });
+
+  return { courierId, pickupCode };
+}
+
+/**
+ * Courier accept order (after assignment).
+ * Status: COURIER_ASSIGNED → COURIER_GOING_TO_PICKUP
+ */
+export async function courierAcceptOrder(orderId, courierId) {
+  const ref = doc(db, COLLECTION.ORDERS, orderId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Order tidak ditemukan.');
+  const order = snap.data();
+  if (order.courierId !== courierId) throw new Error('Order ini bukan milikmu.');
+  if (order.orderStatus !== 'COURIER_ASSIGNED') throw new Error('Order sudah diproses.');
+
+  await updateDoc(ref, {
+    orderStatus: 'COURIER_GOING_TO_PICKUP',
+    'timestamps.COURIER_GOING_TO_PICKUP': serverTimestamp(),
+    'timestamps.updatedAt': serverTimestamp(),
+    statusHistory: arrayUnion({
+      from: 'COURIER_ASSIGNED',
+      to: 'COURIER_GOING_TO_PICKUP',
+      actorId: courierId,
+      note: 'Courier accepted, going to pickup',
+      at: new Date().toISOString(),
+    }),
+  });
+}
+
+/**
+ * Courier reject order — release assignment, status balik ke READY_FOR_PICKUP.
+ * Admin bisa re-assign manual atau auto-assign ulang.
+ */
+export async function courierRejectOrder(orderId, courierId, reason = '') {
+  const ref = doc(db, COLLECTION.ORDERS, orderId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Order tidak ditemukan.');
+  const order = snap.data();
+  if (order.courierId !== courierId) throw new Error('Order ini bukan milikmu.');
+
+  await updateDoc(ref, {
+    orderStatus: 'READY_FOR_PICKUP',
+    courierId: null,
+    pickupCode: null,
+    'timestamps.updatedAt': serverTimestamp(),
+    statusHistory: arrayUnion({
+      from: 'COURIER_ASSIGNED',
+      to: 'READY_FOR_PICKUP',
+      actorId: courierId,
+      note: `Courier rejected: ${reason || 'no reason'}`,
+      at: new Date().toISOString(),
+    }),
+  });
+}
+
+/**
+ * Courier verify pickup code (entered by seller).
+ * If valid → status = PICKED_UP, generate delivery OTP.
+ *
+ * @param {string} orderId
+ * @param {string} courierId
+ * @param {string} code - 6-digit code dari seller
+ */
+export async function verifyPickupCode(orderId, courierId, code) {
+  const ref = doc(db, COLLECTION.ORDERS, orderId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Order tidak ditemukan.');
+  const order = snap.data();
+  if (order.courierId !== courierId) throw new Error('Order ini bukan milikmu.');
+  if (!['COURIER_GOING_TO_PICKUP', 'ARRIVED_PICKUP'].includes(order.orderStatus)) {
+    throw new Error('Pickup verification tidak tersedia pada status ini.');
+  }
+  if (order.pickupCode !== code) {
+    throw new Error('Pickup code salah. Minta code ke seller.');
+  }
+
+  // Generate 6-digit delivery OTP untuk buyer confirm saat sampai
+  const deliveryOtp = String(Math.floor(100000 + Math.random() * 900000));
+
+  await updateDoc(ref, {
+    orderStatus: 'PICKED_UP',
+    deliveryOtp,
+    pickupCode: null, // clear untuk security
+    'timestamps.PICKED_UP': serverTimestamp(),
+    'timestamps.updatedAt': serverTimestamp(),
+    statusHistory: arrayUnion({
+      from: order.orderStatus,
+      to: 'PICKED_UP',
+      actorId: courierId,
+      note: 'Pickup verified, delivery OTP generated',
+      at: new Date().toISOString(),
+    }),
+  });
+
+  return { deliveryOtp };
+}
+
+/**
+ * Courier mark as delivering (after pickup, before delivery).
+ */
+export async function markDelivering(orderId, courierId) {
+  const ref = doc(db, COLLECTION.ORDERS, orderId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Order tidak ditemukan.');
+  const order = snap.data();
+  if (order.courierId !== courierId) throw new Error('Order ini bukan milikmu.');
+  if (order.orderStatus !== 'PICKED_UP') throw new Error('Order harus berstatus PICKED_UP dulu.');
+
+  await updateDoc(ref, {
+    orderStatus: 'DELIVERING',
+    'timestamps.DELIVERING': serverTimestamp(),
+    'timestamps.updatedAt': serverTimestamp(),
+    statusHistory: arrayUnion({
+      from: 'PICKED_UP',
+      to: 'DELIVERING',
+      actorId: courierId,
+      note: 'Courier started delivery',
+      at: new Date().toISOString(),
+    }),
+  });
+}
+
+/**
+ * Courier mark as arrived at customer location.
+ */
+export async function markArrived(orderId, courierId) {
+  const ref = doc(db, COLLECTION.ORDERS, orderId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Order tidak ditemukan.');
+  const order = snap.data();
+  if (order.courierId !== courierId) throw new Error('Order ini bukan milikmu.');
+  if (order.orderStatus !== 'DELIVERING') throw new Error('Order harus berstatus DELIVERING dulu.');
+
+  await updateDoc(ref, {
+    orderStatus: 'ARRIVED',
+    'timestamps.ARRIVED': serverTimestamp(),
+    'timestamps.updatedAt': serverTimestamp(),
+    statusHistory: arrayUnion({
+      from: 'DELIVERING',
+      to: 'ARRIVED',
+      actorId: courierId,
+      note: 'Courier arrived at customer',
+      at: new Date().toISOString(),
+    }),
+  });
+}
+
+/**
+ * Buyer verify delivery OTP (entered by courier).
+ * If valid → status = DELIVERED, clear delivery OTP.
+ *
+ * @param {string} orderId
+ * @param {string} buyerId
+ * @param {string} otp - 6-digit OTP dari courier
+ */
+export async function verifyDeliveryOtp(orderId, buyerId, otp) {
+  const ref = doc(db, COLLECTION.ORDERS, orderId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Order tidak ditemukan.');
+  const order = snap.data();
+  if (order.buyerId !== buyerId) throw new Error('Order ini bukan milikmu.');
+  if (order.orderStatus !== 'ARRIVED') throw new Error('Order harus berstatus ARRIVED dulu.');
+  if (order.deliveryOtp !== otp) throw new Error('OTP salah. Minta OTP ke buyer.');
+
+  await updateDoc(ref, {
+    orderStatus: 'DELIVERED',
+    deliveryOtp: null, // clear
+    'timestamps.DELIVERED': serverTimestamp(),
+    'timestamps.updatedAt': serverTimestamp(),
+    statusHistory: arrayUnion({
+      from: 'ARRIVED',
+      to: 'DELIVERED',
+      actorId: buyerId,
+      note: 'Delivery verified by buyer OTP',
+      at: new Date().toISOString(),
+    }),
+  });
+
+  return { success: true };
+}

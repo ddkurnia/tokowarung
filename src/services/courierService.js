@@ -10,6 +10,12 @@ import {
   updateDoc,
   onSnapshot,
   serverTimestamp,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
 } from 'firebase/firestore';
 import { COLLECTION, COURIER_STATUS } from '../utils/constants.js';
 
@@ -100,4 +106,51 @@ export async function getCourierProfile(courierId) {
   const snap = await getDoc(doc(db, COLLECTION.COURIERS, courierId));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
+}
+
+// ============================================
+// COURIER ORDERS (Phase 2.5)
+// ============================================
+
+
+/**
+ * List orders assigned to this courier.
+ * @param {string} courierId
+ * @param {object} opts - { status, pageSize }
+ */
+export async function listAssignedOrders(courierId, opts = {}) {
+  if (!courierId) return { items: [], cursor: null, hasMore: false };
+  const { pageSize = 20, status } = opts;
+  const constraints = [
+    where('courierId', '==', courierId),
+    orderBy('timestamps.createdAt', 'desc'),
+    limit(pageSize),
+  ];
+  if (status) constraints.splice(1, 0, where('orderStatus', '==', status));
+  const q = query(collection(db, COLLECTION.ORDERS), ...constraints);
+  const snap = await getDocs(q);
+  return {
+    items: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    cursor: snap.docs[snap.docs.length - 1] || null,
+    hasMore: snap.size === pageSize,
+  };
+}
+
+/**
+ * Subscribe ke assigned orders realtime (untuk courier dashboard live update).
+ * @param {string} courierId
+ * @param {(items) => void} cb
+ * @returns {() => void} unsubscribe
+ */
+export function subscribeToAssignedOrders(courierId, cb) {
+  if (!courierId || !isFirebaseConfigured()) return () => {};
+  const q = query(
+    collection(db, COLLECTION.ORDERS),
+    where('courierId', '==', courierId),
+    orderBy('timestamps.createdAt', 'desc'),
+    limit(20)
+  );
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  }, (err) => console.error('[courierService] orders snapshot error:', err));
 }

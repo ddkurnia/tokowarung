@@ -22,7 +22,10 @@ const BuyerOrderDetailPage = () => import('./buyer/pages/order-detail.js');
 const ProfilePage = () => import('./buyer/pages/profile.js');
 const SellerDashboard = () => import('./seller/pages/dashboard.js');
 const SellerOrdersPage = () => import('./seller/pages/orders.js');
+const SellerOrderDetailPage = () => import('./seller/pages/order-detail.js');
 const CourierDashboard = () => import('./courier/pages/dashboard.js');
+const CourierOrdersPage = () => import('./courier/pages/orders.js');
+const CourierOrderDetailPage = () => import('./courier/pages/order-detail.js');
 const AdminDashboard = () => import('./admin/pages/dashboard.js');
 const NotFoundPage = () => import('./pages/not-found.js');
 
@@ -45,9 +48,12 @@ function registerAllRoutes() {
   // Seller (protected)
   registerRoute(ROUTE.SELLER_DASHBOARD, [ROLE.SELLER], SellerDashboard);
   registerRoute(ROUTE.SELLER_ORDERS, [ROLE.SELLER], SellerOrdersPage);
+  registerRoute(ROUTE.SELLER_ORDER_DETAIL, [ROLE.SELLER], SellerOrderDetailPage);
 
   // Courier (protected)
   registerRoute(ROUTE.COURIER_DASHBOARD, [ROLE.COURIER], CourierDashboard);
+  registerRoute(ROUTE.COURIER_ORDERS, [ROLE.COURIER], CourierOrdersPage);
+  registerRoute(ROUTE.COURIER_ORDER_DETAIL, [ROLE.COURIER], CourierOrderDetailPage);
 
   // Admin (protected)
   registerRoute(ROUTE.ADMIN_DASHBOARD, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminDashboard);

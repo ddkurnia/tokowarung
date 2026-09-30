@@ -211,10 +211,45 @@ service cloud.firestore {
                     && request.resource.data.items.size() > 0
                     && request.resource.data.items.size() <= 50;
 
-      // Update: hanya via Cloud Function untuk integritas finansial.
-      // Client hanya boleh update timestamps yang tidak kritis.
-      // Admin bisa update status dalam konteks dispute resolution.
-      allow update: if isAdmin();
+      // Update: permission berbasis role
+      // - Buyer bisa update status order-nya sendiri (cancel, confirm delivery)
+      // - Seller bisa update status order-nya sendiri (confirm, prepare, ready_for_pickup, assign courier)
+      // - Courier bisa update status order yang ditugaskan ke dia (accept, going_to_pickup, picked_up, delivering, arrived)
+      // - Admin bisa update apa saja
+      // Validation: tidak boleh ubah buyerId, sellerId, items, subtotal, total (anti fraud)
+      allow update: if isSignedIn() && (
+        // Admin bisa semua
+        isAdmin()
+        // Buyer: hanya boleh update order miliknya, tidak boleh ubah financial fields
+        || (isBuyer() && resource.data.buyerId == uid()
+            && !('buyerId' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('sellerId' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('items' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('subtotal' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('total' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('paymentMethod' in request.resource.data.diff(resource.data).affectedKeys())
+        )
+        // Seller: hanya boleh update order miliknya, tidak boleh ubah financial fields
+        || (isSeller() && resource.data.sellerId == uid()
+            && !('buyerId' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('sellerId' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('items' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('subtotal' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('total' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('paymentMethod' in request.resource.data.diff(resource.data).affectedKeys())
+        )
+        // Courier: hanya boleh update order yang ditugaskan ke dia, tidak boleh ubah financial fields
+        // Courier juga TIDAK boleh set courierId sendiri (admin/seller yang assign)
+        || (isCourier() && resource.data.courierId == uid()
+            && !('buyerId' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('sellerId' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('courierId' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('items' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('subtotal' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('total' in request.resource.data.diff(resource.data).affectedKeys())
+            && !('paymentMethod' in request.resource.data.diff(resource.data).affectedKeys())
+        )
+      );
 
       // Delete: tidak boleh (soft delete via CANCELLED)
       allow delete: if false;

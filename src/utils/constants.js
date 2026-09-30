@@ -255,6 +255,8 @@ export const ROUTE = Object.freeze({
 
   // Courier
   COURIER_DASHBOARD: '/courier',
+  COURIER_ORDERS: '/courier/orders',
+  COURIER_ORDER_DETAIL: '/courier/orders/:id',
   COURIER_WALLET: '/courier/wallet',
   COURIER_HISTORY: '/courier/history',
 

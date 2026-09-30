@@ -71,6 +71,7 @@ export default async function CourierDashboard({ user, profile }) {
   // Quick links
   main.appendChild(
     el('div', { className: 'quick-actions mt-4' }, [
+      el('button', { className: 'btn btn-primary', html: '📦 Pesanan Saya', onClick: () => navigate('/courier/orders') }),
       el('button', { className: 'btn btn-secondary', html: '💵 Wallet', onClick: () => navigate('/courier/wallet') }),
       el('button', { className: 'btn btn-secondary', html: '📜 Riwayat Order', onClick: () => navigate('/courier/history') }),
       el('button', { className: 'btn btn-secondary', html: '🆘 Support', onClick: () => navigate('/courier/support') }),

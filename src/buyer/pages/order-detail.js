@@ -4,8 +4,8 @@
 // ============================================
 
 import { el, EmptyState, BuyerHeader, BuyerBottomNav } from '../../components/ui.js';
-import { toast, confirmDialog } from '../../components/feedback.js';
-import { getOrderById, updateOrderStatus, cancelOrder } from '../../services/orderService.js';
+import { toast, confirmDialog, showModal } from '../../components/feedback.js';
+import { getOrderById, updateOrderStatus, cancelOrder, verifyDeliveryOtp } from '../../services/orderService.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah, formatDate } from '../../utils/helpers.js';
 import { ORDER_STATUS, PAYMENT_METHOD } from '../../utils/constants.js';
@@ -128,6 +128,31 @@ async function loadOrder(container, orderId, user) {
         el('div', { className: 'summary-row summary-row--total' }, [el('span', { text: 'Total' }), el('span', { className: 'fw-800 text-lg text-success', text: formatRupiah(order.total) })]),
       ])
     );
+
+    // Courier info (jika sudah di-assign)
+    if (order.courierId && [ORDER_STATUS.COURIER_ASSIGNED, ORDER_STATUS.COURIER_GOING_TO_PICKUP, ORDER_STATUS.PICKED_UP, ORDER_STATUS.DELIVERING, ORDER_STATUS.ARRIVED, ORDER_STATUS.DELIVERED].includes(order.orderStatus)) {
+      container.appendChild(
+        el('div', { className: 'card mt-4' }, [
+          el('h2', { className: 'mb-4', text: '🛵 Info Kurir' }),
+          el('p', { className: 'text-sm text-muted', text: 'Kurir ID: ' + order.courierId.slice(0, 12) + '...' }),
+          el('p', { className: 'text-sm', text: 'Status: ' + order.orderStatus.replace(/_/g, ' ').toLowerCase() }),
+          order.paymentMethod === PAYMENT_METHOD.COD ? el('p', { className: 'text-sm fw-600 mt-2', text: '💵 Siapkan uang tunai: ' + formatRupiah(order.total) }) : null,
+        ])
+      );
+    }
+
+    // Delivery OTP (show ke courier saat ARRIVED)
+    if (order.deliveryOtp && order.orderStatus === ORDER_STATUS.ARRIVED) {
+      container.appendChild(
+        el('div', { className: 'banner banner-info mt-4' }, [
+          el('div', {}, [
+            el('h3', { className: 'banner__title', text: '🔑 Delivery OTP untuk Kurir' }),
+            el('p', { className: 'banner__desc', text: 'Berikan 6-digit OTP ini ke kurir untuk verifikasi pesanan diterima.' }),
+            el('p', { className: 'fw-800 text-2xl text-info mt-2', text: order.deliveryOtp }),
+          ]),
+        ])
+      );
+    }
 
     // Actions based on status
     const actions = renderActions(order, user, container);
