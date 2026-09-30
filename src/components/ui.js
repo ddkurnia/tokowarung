@@ -14,6 +14,18 @@ function el(tag, opts = {}, children = []) {
   if (opts.id) node.id = opts.id;
   if (opts.text) node.textContent = opts.text;
   if (opts.html) node.innerHTML = opts.html;
+  // Shortcut attributes (umum dipakai) — biar call site lebih bersih
+  if (opts.href != null) node.setAttribute('href', opts.href);
+  if (opts.src != null) node.setAttribute('src', opts.src);
+  if (opts.alt != null) node.setAttribute('alt', opts.alt);
+  if (opts.type != null) node.setAttribute('type', opts.type);
+  if (opts.name != null) node.setAttribute('name', opts.name);
+  if (opts.value != null) node.setAttribute('value', opts.value);
+  if (opts.placeholder != null) node.setAttribute('placeholder', opts.placeholder);
+  if (opts.loading != null) node.setAttribute('loading', opts.loading);
+  if (opts.disabled != null && opts.disabled) node.setAttribute('disabled', '');
+  if (opts.checked != null && opts.checked) node.setAttribute('checked', '');
+  if (opts.required != null && opts.required) node.setAttribute('required', '');
   if (opts.attrs) {
     for (const [k, v] of Object.entries(opts.attrs)) {
       if (v === null || v === undefined) continue;
