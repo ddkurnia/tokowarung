@@ -9,7 +9,7 @@
 //   Lihat: firestore.rules dan storage.rules
 // ============================================
 
-import { initializeApp, checkInitialized } from './app.js';
+import { initializeApp, checkInitialized, isFirebaseConfigured, getFirebaseConfigStatus } from './app.js';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -56,4 +56,4 @@ if (DEBUG_FIREBASE) {
   console.debug('[TokoWarung] Firebase initialized for project:', firebaseConfig.projectId);
 }
 
-export { checkInitialized };
+export { checkInitialized, isFirebaseConfigured, getFirebaseConfigStatus };

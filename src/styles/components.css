@@ -1357,3 +1357,61 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-muted-2);
 }
+
+/* ----- CONFIG WARNING BANNER (untuk Firebase not configured) ----- */
+.config-warning-banner {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #78350f;
+  border-bottom: 2px solid #f59e0b;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.config-warning-banner__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: var(--max-width);
+  margin: 0 auto;
+  flex: 1;
+}
+
+.config-warning-banner__icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.config-warning-banner__text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1.4;
+}
+
+.config-warning-banner__close {
+  background: transparent;
+  border: none;
+  color: #78350f;
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.config-warning-banner__close:hover {
+  background: rgba(245, 158, 11, 0.2);
+}

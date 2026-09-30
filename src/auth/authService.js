@@ -15,7 +15,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 
-import { auth, db } from '../firebase/config.js';
+import { auth, db, isFirebaseConfigured } from '../firebase/config.js';
 import {
   doc,
   getDoc,
@@ -35,6 +35,24 @@ const listeners = new Set();
 let currentUser = null;
 let currentUserProfile = null;
 let unsubAuthState = null;
+
+// ----- Firebase config guard -----
+// Cek sebelum operasi auth — kasih error jelas kalau env vars belum diset di Vercel
+function ensureFirebaseConfigured(operation = 'operasi Firebase') {
+  if (!isFirebaseConfigured()) {
+    const err = new Error(
+      'Firebase belum dikonfigurasi di server ini. ' +
+      'Pastikan Environment Variables sudah di-set di Vercel (lihat DEPLOYMENT.md). ' +
+      `Operasi: ${operation}`
+    );
+    err.code = 'CONFIG_NOT_SET';
+    throw err;
+  }
+}
+
+// ============================================
+// Auth state listener (single source of truth)
+// ============================================
 
 /**
  * Inisialisasi auth listener global. Dipanggil sekali dari main.js.
@@ -118,6 +136,7 @@ export async function fetchUserProfile(uid) {
  * @param {string} param.phone - opsional
  */
 export async function registerUser({ email, password, displayName, role = ROLE.BUYER, phone = '' }) {
+  ensureFirebaseConfigured('Register');
   if (!email || !password) {
     throw new Error('Email dan password wajib diisi.');
   }
@@ -240,6 +259,7 @@ async function createCourierApplication(uid, displayName, phone) {
  * Login dengan email + password.
  */
 export async function loginWithEmail(email, password) {
+  ensureFirebaseConfigured('Login');
   const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
   currentUser = cred.user;
   currentUserProfile = await fetchUserProfile(cred.user.uid);
@@ -261,6 +281,7 @@ export async function loginWithEmail(email, password) {
  * Login dengan Google (utk BUYER cepat). Role lain harus link email/password.
  */
 export async function loginWithGoogle() {
+  ensureFirebaseConfigured('Google Login');
   const provider = new GoogleAuthProvider();
   const cred = await signInWithPopup(auth, provider);
   currentUser = cred.user;
@@ -302,6 +323,7 @@ export async function logout() {
  * Kirim email reset password.
  */
 export async function resetPassword(email) {
+  ensureFirebaseConfigured('Reset Password');
   await sendPasswordResetEmail(auth, email.trim());
 }
 

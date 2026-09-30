@@ -130,6 +130,12 @@ function resolveRoleRoute(role, redirect) {
 
 function humanizeAuthError(err) {
   const code = err?.code || '';
+  if (code === 'CONFIG_NOT_SET') {
+    return '⚠️ Aplikasi belum siap. Admin belum mengatur Firebase.';
+  }
+  if (code.includes('api-key-not-valid') || code.includes('invalid-api-key')) {
+    return '⚠️ Konfigurasi Firebase tidak valid. Hubungi admin.';
+  }
   if (code.includes('invalid-credential') || code.includes('wrong-password')) return 'Email atau password salah.';
   if (code.includes('user-not-found')) return 'Email belum terdaftar.';
   if (code.includes('too-many-requests')) return 'Terlalu banyak percobaan. Coba beberapa saat lagi.';

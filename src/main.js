@@ -4,6 +4,7 @@
 // ============================================
 
 import { initAuth, onAuthChange } from './auth/authService.js';
+import { isFirebaseConfigured } from './firebase/config.js';
 import { startRouter, registerRoute, setNotFound, setLayout } from './router/router.js';
 import { ROUTE, ROLE } from './utils/constants.js';
 import { el } from './components/ui.js';
@@ -54,8 +55,12 @@ setLayout((child, ctx) => {
 
 // ----- Bootstrap -----
 async function bootstrap() {
-  // 1. Init Firebase Auth listener
+  // 1. Init Firebase Auth listener (ini juga trigger Firebase init)
   initAuth();
+
+  // 1.5 Cek apakah Firebase sudah dikonfigurasi dengan benar (env vars di Vercel)
+  // Jika belum, tampilkan banner warning di atas app (tapi tetap lanjut router)
+  showConfigWarningIfNeeded();
 
   // 2. Register routes
   registerAllRoutes();
@@ -94,6 +99,35 @@ function updateTitleFromHash() {
   else if (hash.startsWith('/search')) title = 'Cari Produk — TokoWarung';
   else if (hash.startsWith('/cart')) title = 'Keranjang — TokoWarung';
   document.title = title;
+}
+
+// ----- Show config warning banner if Firebase env vars not set -----
+function showConfigWarningIfNeeded() {
+  if (isFirebaseConfigured()) return;
+
+  const banner = el('div', {
+    className: 'config-warning-banner',
+    attrs: { role: 'alert' },
+  }, [
+    el('div', { className: 'config-warning-banner__content' }, [
+      el('span', { className: 'config-warning-banner__icon', html: '⚠️' }),
+      el('div', { className: 'config-warning-banner__text' }, [
+        el('strong', { text: 'Firebase belum dikonfigurasi.' }),
+        el('span', {
+          text: ' Login & register tidak akan berfungsi. Admin perlu set Environment Variables di Vercel.',
+        }),
+      ]),
+    ]),
+    el('button', {
+      className: 'config-warning-banner__close',
+      attrs: { 'aria-label': 'Tutup warning' },
+      html: '✕',
+      onClick: () => banner.remove(),
+    }),
+  ]);
+
+  // Insert at top of body, before #app
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 // ----- Start -----

@@ -146,6 +146,12 @@ export default async function RegisterPage() {
 
 function humanizeRegisterError(err) {
   const code = err?.code || '';
+  if (code === 'CONFIG_NOT_SET') {
+    return '⚠️ Aplikasi belum siap. Admin belum mengatur Firebase. Coba lagi nanti.';
+  }
+  if (code.includes('api-key-not-valid') || code.includes('invalid-api-key')) {
+    return '⚠️ Konfigurasi Firebase tidak valid. Hubungi admin untuk perbaiki.';
+  }
   if (code.includes('email-already-in-use')) return 'Email sudah terdaftar. Silakan masuk.';
   if (code.includes('weak-password')) return 'Password terlalu lemah. Pakai kombinasi huruf & angka.';
   if (code.includes('network-request-failed')) return 'Koneksi internet bermasalah.';
