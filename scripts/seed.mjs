@@ -15,13 +15,14 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const firebaseToolsApi = require('firebase-tools/lib/api');
 
 const PROJECT_ID = 'tokowarung-15b64';
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+
+// Firebase-tools public OAuth client credentials (sudah public di firebase-tools source code).
+// Ini bukan secret — Google OAuth "installed app" clients treat these as public identifiers.
+const FIREBASE_CLI_CLIENT_ID = '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com';
+const FIREBASE_CLI_CLIENT_SECRET = 'j9iVZfS8kkCEFUPaAeJV0sAi';
 
 // ----- SEED DATA -----
 
@@ -77,8 +78,8 @@ async function getAccessToken() {
 
   // 2. Get client_id & client_secret from firebase-tools
   // (these are public, hardcoded in firebase-tools module for CLI OAuth)
-  const clientId = firebaseToolsApi.clientId();
-  const clientSecret = firebaseToolsApi.clientSecret();
+  const clientId = FIREBASE_CLI_CLIENT_ID;
+  const clientSecret = FIREBASE_CLI_CLIENT_SECRET;
 
   // 3. Exchange refresh_token for access_token via Google OAuth
   console.log('🔄 Refreshing OAuth token...');

@@ -67,3 +67,4 @@ serviceAccountKey.json
 
 # Download folder (artifacts, not source)
 download/
+scripts/.deps/
