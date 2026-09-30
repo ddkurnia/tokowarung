@@ -8,10 +8,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy:rules": "npx firebase deploy --only firestore:rules,firestore:indexes,storage",
+    "deploy:rules": "npx firebase deploy --only firestore:rules,firestore:indexes",
+    "deploy:storage": "npx firebase deploy --only storage",
     "deploy:functions": "npx firebase deploy --only functions",
     "deploy:firebase": "npx firebase deploy --only firestore:rules,firestore:indexes,storage,functions",
-    "seed": "node scripts/seed.js",
+    "seed": "node scripts/seed.mjs",
     "deploy:vercel": "vercel --prod"
   },
   "dependencies": {
