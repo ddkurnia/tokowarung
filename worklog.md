@@ -1,4 +1,4 @@
-# TokOnline.com — Worklog
+# TokoWarung — Worklog
 
 ---
 Task ID: phase-1
@@ -49,3 +49,46 @@ Stage Summary:
 - Aman & reversible: semua data via Firebase services (no hardcoded secrets), security rules strict, no destructive changes possible dari client.
 - Siap lanjut ke Phase 2 (cart page, checkout, order tracking, courier online toggle, auto-dispatch).
 - Untuk user: tinggal buat project Firebase, isi .env, deploy rules, jalankan seed, run `npm run dev`.
+
+---
+Task ID: phase-1-deploy
+Agent: main (Super Z)
+Task: Push code ke GitHub (repo: tokowarung), setup Firebase deploy scripts, prepare Vercel auto-deploy config. Live dan real-time production.
+
+Work Log:
+- Security analysis: User shared GitHub PAT di chat (ghp_***). Token akan dipakai untuk satu kali push saja, tidak disimpan di file/config manapun. Token di-unset dari env setelah selesai.
+- Update .env dengan real Firebase config (tokowarung-15b64): API key, auth domain, project ID, storage bucket, messaging sender ID, app ID. .env tetap gitignored (verified).
+- Rebuild production: 43 modules, code splitting active (firebase lazy-loaded). Bundle utama 20KB, gzip 110KB total.
+- Cleanup git tracking: skills/ folder (1053 files, 61MB) di-untrack dari git karena bukan bagian dari TokOnline app. download/ folder juga di-untrack (build artifacts). Total tracked files turun dari 1134 → 42 (hanya kode TokOnline).
+- Auth GitHub via API: dapatkan username "ddkurnia", verified token punya scope "repo". Token scopes confirmed via X-OAuth-Scopes header.
+- Created GitHub repo via API POST to /user/repos: repo "ddkurnia/tokowarung" dengan description, public visibility, homepage URL https://tokowarung.vercel.app.
+- Configured git remote dengan PAT embedded untuk satu kali push (token di-remove dari remote URL setelah push selesai).
+- Commit "Phase 1: TokoWarung local marketplace foundation" dengan detailed changelog (Phase 1 features, security model, build verification, Phase 2-6 roadmap).
+- Push berhasil ke https://github.com/ddkurnia/tokowarung. Latest commit SHA: 336feb5.
+- Created vercel.json: Vite framework auto-detection, install command, build command, output dir "dist", SPA rewrites (fallback to index.html), cache headers untuk assets (immutable 1 year), security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy).
+- Created scripts/firebase-deploy.sh: bash script interaktif untuk deploy dari terminal lokal (firebase login + deploy rules + storage + functions). Auto-detect existing login, prompt untuk Cloud Functions deploy.
+- Created scripts/firebase-deploy-rest.js: Node.js script untuk deploy rules via Firebase Admin REST API (tanpa firebase login interaktif) menggunakan service account JSON. Implement JWT creation + OAuth token exchange + REST API deploy ruleset + release. Cocok untuk CI/CD.
+- Created DEPLOYMENT.md: panduan step-by-step untuk Firebase rules deploy (Cara A: CLI interaktif, Cara B: service account REST API), enable Firebase services (Auth, Firestore, Storage, Functions), seed data, Vercel auto-deploy setup (Cara A: dashboard, Cara B: CLI), verification flow, troubleshooting, security checklist, environment variables reference.
+- Update package.json: rename "name" dari "tokonline" → "tokowarung", tambah deploy scripts (deploy:rules, deploy:functions, deploy:firebase, seed, deploy:vercel).
+- Update firebase.json: tambah functions runtime "nodejs18", remove "database" field (tidak pakai Realtime Database).
+- Update .gitignore: tambah skills/, upload/, serviceAccount.json, serviceAccountKey.json (file sensitif).
+- Commit & push deployment configs: 8 files (DEPLOYMENT.md, vercel.json, firebase-deploy.sh, firebase-deploy-rest.js, updated package.json, firebase.json, .gitignore, package-lock.json). Latest commit SHA: cf2519d.
+- Security verification final:
+  * .env is NOT tracked by git (✅)
+  * serviceAccount.json is NOT tracked (✅)
+  * Remote URL is clean (no token embedded) (✅)
+  * Environment variables cleared after use (✅)
+  * GitHub API check: .env file returns 404 (✅ confirmed not in repo)
+
+Stage Summary:
+- GitHub repo LIVE di https://github.com/ddkurnia/tokowarung (2 commits, public)
+- Production build verified (43 modules, 110KB gzip)
+- Deployment scripts siap pakai (firebase-deploy.sh + firebase-deploy-rest.js)
+- Vercel config siap (vercel.json dengan optimal settings)
+- DEPLOYMENT.md comprehensive (5 step-by-step sections, troubleshooting, security checklist)
+- Yang perlu user lakukan (tidak bisa di-automate):
+  1. Run `npx firebase login && npx firebase deploy --only firestore:rules,firestore:indexes,storage` (atau pakai scripts/firebase-deploy.sh) — butuh auth interaktif
+  2. Enable Firestore database + Storage di Firebase Console
+  3. Connect GitHub repo ke Vercel (vercel.com → Import project → set env vars)
+  4. Setelah user terdaftar via app, jalankan seed script untuk inisialisasi data
+- ⚠️ URGENT: User harus revoke GitHub PAT ghp_*** sekarang juga karena sudah exposed di chat. Buat PAT baru di https://github.com/settings/tokens
