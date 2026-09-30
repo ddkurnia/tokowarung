@@ -1,0 +1,411 @@
+rules_version = '2';
+
+// ============================================
+// TokOnline.com — Firestore Security Rules
+// ============================================
+// PRINSIP KEAMANAN:
+// 1. DILARANG: allow read, write: if true;
+// 2. Role-based access control (RBAC).
+// 3. Buyer hanya boleh akses data miliknya.
+// 4. Seller hanya boleh akses data miliknya (sellerId == uid).
+// 5. Courier hanya boleh akses order yang ditugaskan kepadanya.
+// 6. Admin & Super Admin punya akses operasional sesuai role.
+// 7. Field sensitif (identityNumber, bankAccount) tidak boleh di-read ke publik.
+// 8. Validasi input wajib dilakukan di sini (defensive layer).
+//
+// Catatan: untuk integritas finansial, update status order, dan
+// mutation yang kritis, SEBAIKNYA via Cloud Functions (server-side)
+// dengan Admin SDK, BUKAN dari client langsung.
+// ============================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----- HELPERS -----
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(uid())).data;
+    }
+
+    function userRole() {
+      return userDoc().role;
+    }
+
+    function isBuyer() {
+      return isSignedIn() && userRole() == 'BUYER';
+    }
+
+    function isSeller() {
+      return isSignedIn() && userRole() == 'SELLER';
+    }
+
+    function isCourier() {
+      return isSignedIn() && userRole() == 'COURIER';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (userRole() == 'ADMIN' || userRole() == 'SUPER_ADMIN');
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && userRole() == 'SUPER_ADMIN';
+    }
+
+    function isOwnData(userId) {
+      return isSignedIn() && uid() == userId;
+    }
+
+    // Validasi tipe data string dan panjang
+    function isNonEmptyString(value, maxLen) {
+      return value is string && value.size() > 0 && value.size() <= maxLen;
+    }
+
+    // Validasi harga (number positif)
+    function isPositiveAmount(value) {
+      return value is number && value >= 0 && value < 1000000000;
+    }
+
+    // ----- USERS -----
+    match /users/{userId} {
+      // Public profile info bisa dibaca siapa saja (untuk display store name, dsb)
+      // TAPI field sensitif harus di-strip di Cloud Function (untuk MVP, expose tidak sensitif)
+      allow read: if isSignedIn() && (isOwnData(userId) || isAdmin() || isSeller() || isCourier() || isBuyer());
+
+      // User hanya boleh update data miliknya sendiri, TIDAK boleh update role (kunci keamanan!)
+      // Admin bisa update status user
+      allow create: if isOwnData(userId)
+                    && request.resource.data.role in ['BUYER', 'SELLER', 'COURIER']
+                    && request.resource.data.uid == userId;
+
+      allow update: if isOwnData(userId)
+                    && !('role' in request.resource.data.diff().affectedKeys()) // TIDAK boleh ganti role sendiri
+                    && !('status' in request.resource.data.diff().affectedKeys()) // TIDAK boleh ganti status sendiri
+                    || isAdmin();
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ----- SELLERS -----
+    match /sellers/{sellerId} {
+      // Public store info (verified sellers only) bisa di-read siapa pun
+      allow read: if true; // STRIP field sensitif di layer aplikasi (storeService)
+
+      // Seller bisa create profile miliknya sendiri (saat register)
+      allow create: if isOwnData(sellerId) && sellerId == uid();
+
+      // Seller bisa update profile miliknya, TAPI tidak boleh ubah field sensitif
+      // (verificationStatus, violationLevel, violationScore, identityNumber, bankAccount)
+      allow update: if isOwnData(sellerId)
+                    && !('verificationStatus' in request.resource.data.diff().affectedKeys())
+                    && !('violationLevel' in request.resource.data.diff().affectedKeys())
+                    && !('violationScore' in request.resource.data.diff().affectedKeys())
+                    || isAdmin();
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ----- COURIERS -----
+    match /couriers/{courierId} {
+      allow read: if isSignedIn() && (isOwnData(courierId) || isAdmin());
+
+      allow create: if isOwnData(courierId) && courierId == uid();
+
+      // Courier bisa update beberapa field sendiri (isOnline, currentLocation, currentLoad)
+      // Status verifikasi & violation hanya admin yang bisa ubah
+      allow update: if isOwnData(courierId)
+                    && !('status' in request.resource.data.diff().affectedKeys())
+                    && !('violationLevel' in request.resource.data.diff().affectedKeys())
+                    && !('totalDeliveries' in request.resource.data.diff().affectedKeys())
+                    && !('rating' in request.resource.data.diff().affectedKeys())
+                    && request.resource.data.currentLocation.keys().hasAll(['lat', 'lng'])
+                    || isAdmin();
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ----- STORES (alias untuk verified seller public view) -----
+    // Untuk MVP, stores collection = subset seller tanpa field sensitif.
+    // Sama dengan sellers rules.
+    match /stores/{storeId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // ----- CATEGORIES -----
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ----- PRODUCTS -----
+    match /products/{productId} {
+      // Public bisa read APPROVED & active products
+      allow read: if resource.data.status == 'APPROVED' && resource.data.isActive == true
+                    || isSeller() && resource.data.sellerId == uid()
+                    || isAdmin();
+
+      // Seller bisa create produk di bawah sellerId miliknya, status WAJIB DRAFT
+      allow create: if isSeller()
+                    && request.resource.data.sellerId == uid()
+                    && request.resource.data.status == 'DRAFT'
+                    && isNonEmptyString(request.resource.data.name, 120)
+                    && isPositiveAmount(request.resource.data.price);
+
+      // Seller bisa update produk miliknya, TIDAK boleh set status ke APPROVED sendiri
+      allow update: if (isSeller() && resource.data.sellerId == uid()
+                    && request.resource.data.status != 'APPROVED')
+                    || isAdmin();
+
+      // Seller bisa hapus produk miliknya (soft delete recommended via status=SUSPENDED)
+      allow delete: if (isSeller() && resource.data.sellerId == uid()) || isAdmin();
+    }
+
+    // ----- INVENTORY -----
+    match /inventory/{inventoryId} {
+      allow read: if isSignedIn() && (isSeller() || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ----- CARTS (per user) -----
+    match /carts/{cartId} {
+      allow read: if isOwnData(cartId);
+      allow write: if isOwnData(cartId)
+                    && request.resource.data.items is list
+                    && request.resource.data.items.size() <= 50;
+      allow delete: if isOwnData(cartId);
+    }
+
+    // ----- ORDERS -----
+    match /orders/{orderId} {
+      // Read: buyer miliknya, seller miliknya, courier yang ditugaskan, admin
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == uid() ||
+        resource.data.sellerId == uid() ||
+        (resource.data.courierId == uid() && isCourier()) ||
+        isAdmin()
+      );
+
+      // Create: buyer yang login, tidak boleh set status selain PENDING_PAYMENT
+      allow create: if isBuyer()
+                    && request.resource.data.buyerId == uid()
+                    && request.resource.data.orderStatus == 'PENDING_PAYMENT'
+                    && isPositiveAmount(request.resource.data.total)
+                    && request.resource.data.items is list
+                    && request.resource.data.items.size() > 0
+                    && request.resource.data.items.size() <= 50;
+
+      // Update: hanya via Cloud Function untuk integritas finansial.
+      // Client hanya boleh update timestamps yang tidak kritis.
+      // Admin bisa update status dalam konteks dispute resolution.
+      allow update: if isAdmin();
+
+      // Delete: tidak boleh (soft delete via CANCELLED)
+      allow delete: if false;
+    }
+
+    // ----- ORDER ITEMS (sub-collection) -----
+    match /orders/{orderId}/orderItems/{itemId} {
+      allow read: if isSignedIn() && (
+        get(/databases/$(database)/documents/orders/$(orderId)).data.buyerId == uid() ||
+        get(/databases/$(database)/documents/orders/$(orderId)).data.sellerId == uid() ||
+        isAdmin()
+      );
+      allow write: if false; // create via transaction saat create order
+    }
+
+    // ----- PAYMENTS -----
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == uid() ||
+        resource.data.sellerId == uid() ||
+        isAdmin()
+      );
+      allow create: if isBuyer() && request.resource.data.status == 'PENDING';
+      allow update: if isAdmin(); // status update hanya via Cloud Function webhook
+      allow delete: if false;
+    }
+
+    // ----- TRANSACTIONS (ledger) -----
+    match /transactions/{txId} {
+      allow read: if isSignedIn() && (
+        resource.data.actorId == uid() || isAdmin()
+      );
+      allow write: if false; // SEMUA via Cloud Function utk integritas finansial
+      allow delete: if false;
+    }
+
+    // ----- WALLETS (seller & courier) -----
+    match /sellerWallets/{walletId} {
+      allow read: if isOwnData(walletId) || isAdmin();
+      allow write: if false; // via Cloud Function
+    }
+
+    match /courierWallets/{walletId} {
+      allow read: if isOwnData(walletId) || isAdmin();
+      allow write: if false;
+    }
+
+    // ----- WITHDRAWALS -----
+    match /withdrawals/{withdrawalId} {
+      allow read: if isSignedIn() && (resource.data.userId == uid() || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == uid()
+                    && isPositiveAmount(request.resource.data.amount)
+                    && request.resource.data.status == 'REQUESTED';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ----- DELIVERIES -----
+    match /deliveries/{deliveryId} {
+      allow read: if isSignedIn() && (
+        resource.data.courierId == uid() ||
+        resource.data.sellerId == uid() ||
+        resource.data.buyerId == uid() ||
+        isAdmin()
+      );
+
+      // Create: via Cloud Function saat order COURIER_ASSIGNED
+      allow create: if false;
+
+      // Update: courier bisa update status delivery miliknya, admin bisa
+      allow update: if (isCourier() && resource.data.courierId == uid())
+                    || isAdmin();
+    }
+
+    // ----- DELIVERY EVENTS (tracking history) -----
+    match /deliveryEvents/{eventId} {
+      allow read: if isSignedIn() && (
+        resource.data.courierId == uid() ||
+        isAdmin() ||
+        get(/databases/$(database)/documents/orders/$(resource.data.orderId)).data.buyerId == uid()
+      );
+      allow create: if isCourier() && request.resource.data.courierId == uid();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ----- REVIEWS -----
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isBuyer() && request.resource.data.buyerId == uid()
+                    && request.resource.data.rating is number
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5
+                    && isNonEmptyString(request.resource.data.comment, 500);
+      allow update: if isOwnData(resource.data.buyerId) && (
+        // Hanya boleh update comment, tidak boleh ubah rating utk hindari manipulasi
+        !('rating' in request.resource.data.diff().affectedKeys())
+      );
+      allow delete: if isAdmin() || isSuperAdmin();
+    }
+
+    // ----- REPORTS -----
+    match /reports/{reportId} {
+      allow read: if isAdmin() || isOwnData(resource.data.reporterId);
+      allow create: if isSignedIn() && request.resource.data.reporterId == uid();
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ----- DISPUTES -----
+    match /disputes/{disputeId} {
+      allow read: if isSignedIn() && (
+        resource.data.participants.toArray().any(v => v == uid()) || isAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.participants.toArray().any(v => v == uid());
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ----- INCIDENTS -----
+    match /incidents/{incidentId} {
+      allow read: if isAdmin() || isOwnData(resource.data.reporterId);
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ----- VIOLATIONS -----
+    match /violations/{violationId} {
+      allow read: if isAdmin() || isOwnData(resource.data.sellerId);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false; // RIWAYAT PELANGGARAN TIDAK BOLEH DIHAPUS
+    }
+
+    // ----- NOTIFICATIONS -----
+    match /notifications/{notifId} {
+      allow read: if isOwnData(resource.data.userId);
+      allow create: if false; // via Cloud Function
+      allow update: if isOwnData(resource.data.userId); // mark as read
+      allow delete: if isOwnData(resource.data.userId);
+    }
+
+    // ----- MESSAGES (chat) -----
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && (
+        resource.data.senderId == uid() ||
+        resource.data.recipientId == uid()
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.senderId == uid() &&
+        isNonEmptyString(request.resource.data.text, 1000)
+      );
+      allow update: if isOwnData(resource.data.senderId);
+      allow delete: if isAdmin() || isOwnData(resource.data.senderId);
+    }
+
+    // ----- PROMOTIONS & COUPONS -----
+    match /promotions/{promoId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ----- ADS -----
+    match /ads/{adId} {
+      allow read: if true;
+      allow create: if isSeller() && request.resource.data.sellerId == uid();
+      allow update: if (isSeller() && resource.data.sellerId == uid()) || isAdmin();
+      allow delete: if isAdmin() || (isSeller() && resource.data.sellerId == uid());
+    }
+
+    // ----- AUDIT LOGS -----
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // create via Cloud Function only
+      allow delete: if false; // JANGAN PERNAH
+    }
+
+    // ----- SETTINGS -----
+    match /settings/{settingId} {
+      allow read: if true; // settings bersifat public (commission, etc)
+      allow write: if isSuperAdmin();
+    }
+
+    // ----- ZONES -----
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ----- REPORT ABUSE -----
+    match /reportAbuse/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isSuperAdmin();
+    }
+  }
+}

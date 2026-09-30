@@ -1,0 +1,20 @@
+{
+  "name": "tokonline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TokOnline.com - Local Marketplace 2026 (Vanilla JS + Firebase)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy:firebase": "firebase deploy --only firestore:rules,storage,functions",
+    "deploy:vercel": "vercel --prod"
+  },
+  "dependencies": {
+    "firebase": "^10.12.2"
+  },
+  "devDependencies": {
+    "vite": "^5.3.1"
+  }
+}
