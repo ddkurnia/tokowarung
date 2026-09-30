@@ -64,3 +64,6 @@ skills/
 upload/
 serviceAccount.json
 serviceAccountKey.json
+
+# Download folder (artifacts, not source)
+download/

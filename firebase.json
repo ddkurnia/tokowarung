@@ -1,5 +1,4 @@
 {
-  "database": "(default)",
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -15,5 +14,9 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs18"
   }
 }
