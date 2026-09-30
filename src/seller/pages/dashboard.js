@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Seller Dashboard
+// TokoWarung — Seller Dashboard
 // ============================================
 
 import { el, EmptyState, Spinner } from '../../components/ui.js';
@@ -166,7 +166,7 @@ function renderSidebar(active) {
     { id: 'settings', label: 'Pengaturan Toko', href: '#/seller/settings', icon: '⚙️' },
   ];
   const nav = el('aside', { className: 'dashboard__sidebar' });
-  nav.appendChild(el('div', { className: 'dashboard__brand', html: 'TOK<span>Online</span> Seller' }));
+  nav.appendChild(el('div', { className: 'dashboard__brand', html: 'Toko<span>Warung</span> Seller' }));
   items.forEach((it) => {
     nav.appendChild(
       el('a', {

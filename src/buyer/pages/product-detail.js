@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Product Detail Page
+// TokoWarung — Product Detail Page
 // SEO-friendly: clean URL /produk/:id
 // ============================================
 

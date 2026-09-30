@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Product Service
+// TokoWarung — Product Service
 // CRUD produk + query marketplace. Mematuhi security rules.
 // Seller bisa CRUD produk miliknya. Buyer hanya read APPROVED.
 // ============================================

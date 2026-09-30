@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Store Service
+// TokoWarung — Store Service
 // Public store page, seller profile, search store.
 // ============================================
 

@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Register Page
+// TokoWarung — Register Page
 // Multi-role registration (BUYER, SELLER, COURIER).
 // ADMIN/SUPER_ADMIN tidak bisa register dari sini.
 // ============================================
@@ -24,7 +24,7 @@ export default async function RegisterPage() {
   page.appendChild(
     el('div', { className: 'auth-card' }, [
       el('div', { className: 'auth-card__brand' }, [
-        el('div', { className: 'auth-card__logo', html: 'TOK<span>Online</span>' }),
+        el('div', { className: 'auth-card__logo', html: 'Toko<span>Warung</span>' }),
         el('h1', { className: 'auth-card__title', text: 'Buat akun baru' }),
         el('p', { className: 'auth-card__subtitle', text: 'Pilih peran yang sesuai untuk mulai.' }),
       ]),
@@ -85,7 +85,7 @@ export default async function RegisterPage() {
         el('a', { className: 'btn-link', href: '#/login', text: 'Masuk' }),
       ]),
 
-      el('p', { className: 'auth-legal-note text-xs text-muted', text: 'Dengan mendaftar, kamu menyetujui Ketentuan Layanan & Kebijakan Privasi TokOnline.' }),
+      el('p', { className: 'auth-legal-note text-xs text-muted', text: 'Dengan mendaftar, kamu menyetujui Ketentuan Layanan & Kebijakan Privasi TokoWarung.' }),
     ])
   );
 
@@ -127,7 +127,7 @@ export default async function RegisterPage() {
       });
 
       if (selectedRole === ROLE.BUYER) {
-        toast.success('Pendaftaran berhasil! Selamat datang di TokOnline.');
+        toast.success('Pendaftaran berhasil! Selamat datang di TokoWarung.');
         navigate('/');
       } else {
         toast.success('Pendaftaran berhasil! Akunmu perlu diverifikasi admin.');

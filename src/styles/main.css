@@ -1,5 +1,5 @@
 /* ============================================
-   TokOnline — Design System 2026
+   TokoWarung — Design System 2026
    Mobile-first, modern, premium, clean.
    Single source of truth untuk color, spacing, typography, components.
    ============================================ */
@@ -77,7 +77,7 @@ ol {
 
 /* ----- 2. DESIGN TOKENS (CSS Variables) ----- */
 :root {
-  /* Brand colors — TokOnline primary green (modern, fresh, local marketplace vibe) */
+  /* Brand colors — TokoWarung primary green (modern, fresh, local marketplace vibe) */
   --color-primary: #0b8457;
   --color-primary-hover: #096b46;
   --color-primary-soft: #e6f5ee;

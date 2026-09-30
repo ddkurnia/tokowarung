@@ -203,7 +203,7 @@ Setelah deploy pertama sukses:
 Buka URL Vercel di browser (mis: `https://tokowarung.vercel.app`).
 
 **Test flow minimal:**
-1. ✅ Halaman home tampil (logo TokOnline, hero, kategori, skeleton loading)
+1. ✅ Halaman home tampil (logo TokoWarung, hero, kategori, skeleton loading)
 2. ✅ Klik **"Daftar gratis"** → register sebagai BUYER
 3. ✅ Cek di Firebase Console → Authentication → ada user baru
 4. ✅ Login → diarahkan ke home buyer

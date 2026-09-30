@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Buyer Home Page
+// TokoWarung — Buyer Home Page
 // Modern marketplace home 2026, mobile-first.
 // ============================================
 

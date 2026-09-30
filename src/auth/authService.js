@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Auth Service
+// TokoWarung — Auth Service
 // Single source of truth untuk login, register, logout, role assignment.
 // TIDAK melakukan modifikasi data finansial atau order.
 // ============================================

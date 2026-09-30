@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — 404 Page
+// TokoWarung — 404 Page
 // ============================================
 
 import { el, EmptyState } from '../components/ui.js';

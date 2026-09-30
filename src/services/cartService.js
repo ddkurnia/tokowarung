@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Cart Service (Client-side)
+// TokoWarung — Cart Service (Client-side)
 // Cart disimpan di localStorage untuk guest, di Firestore utk logged-in user.
 // Multi-seller support: cart dikelompokkan per seller.
 // ============================================
@@ -8,7 +8,7 @@ import { db } from '../firebase/config.js';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { COLLECTION } from '../utils/constants.js';
 
-const GUEST_CART_KEY = 'tokonline.guestCart';
+const GUEST_CART_KEY = 'tokowarung.guestCart';
 
 function readGuest() {
   try {

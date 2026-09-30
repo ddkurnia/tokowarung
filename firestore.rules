@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // ============================================
-// TokOnline.com — Firestore Security Rules
+// TokoWarung — Firestore Security Rules
 // ============================================
 // PRINSIP KEAMANAN:
 // 1. DILARANG: allow read, write: if true;

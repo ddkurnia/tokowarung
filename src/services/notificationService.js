@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Notification Service
+// TokoWarung — Notification Service
 // In-app notifications. Push notification via FCM (TODO).
 // ============================================
 

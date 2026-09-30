@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Login Page
+// TokoWarung — Login Page
 // Mobile-first, accessible.
 // ============================================
 
@@ -17,7 +17,7 @@ export default async function LoginPage({ queryParams }) {
   page.appendChild(
     el('div', { className: 'auth-card' }, [
       el('div', { className: 'auth-card__brand' }, [
-        el('div', { className: 'auth-card__logo', html: 'TOK<span>Online</span>' }),
+        el('div', { className: 'auth-card__logo', html: 'Toko<span>Warung</span>' }),
         el('h1', { className: 'auth-card__title', text: 'Masuk ke akunmu' }),
         el('p', { className: 'auth-card__subtitle', text: 'Belanja lokal lebih cepat & aman.' }),
       ]),

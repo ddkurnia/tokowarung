@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Reusable UI Components (Vanilla JS)
+// TokoWarung — Reusable UI Components (Vanilla JS)
 // Setiap fungsi return HTMLElement (atau DocumentFragment).
 // Tidak ada framework — pakai DOM API langsung.
 // ============================================
@@ -55,9 +55,9 @@ export function BuyerHeader({ location = 'Jakarta', onSearch, onCart, onBell, ca
   const header = el('header', { className: 'buyer-header' });
 
   const top = el('div', { className: 'buyer-header__top container' }, [
-    el('a', { className: 'buyer-header__logo', href: '#/', attrs: { 'aria-label': 'TokOnline home' } }, [
-      el('span', { className: 'buyer-header__logo-primary', text: 'TOK' }),
-      el('span', { className: 'buyer-header__logo-secondary', text: 'Online' }),
+    el('a', { className: 'buyer-header__logo', href: '#/', attrs: { 'aria-label': 'TokoWarung home' } }, [
+      el('span', { className: 'buyer-header__logo-primary', text: 'Toko' }),
+      el('span', { className: 'buyer-header__logo-secondary', text: 'Warung' }),
     ]),
     el('button', {
       className: 'buyer-header__location',

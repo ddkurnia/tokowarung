@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Vanilla JS Hash Router
+// TokoWarung — Vanilla JS Hash Router
 // Lightweight, no dependency. Mobile-first.
 //
 // Routing strategi:

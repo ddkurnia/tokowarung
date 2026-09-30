@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Payment Service Abstraction Layer
+// TokoWarung — Payment Service Abstraction Layer
 // ============================================
 // PENTING:
 // - Ini adalah abstraction layer. Provider konkret (Midtrans, Xendit, DANA, dll.)

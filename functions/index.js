@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Cloud Functions (Server-side)
+// TokoWarung — Cloud Functions (Server-side)
 // ============================================
 // PENTING:
 // - File ini berisi function yang TIDAK BOLEH dijalankan dari client:

@@ -1,4 +1,4 @@
-# TokOnline.com — Local Marketplace 2026
+# TokoWarung — Local Marketplace 2026
 
 > Marketplace lokal modern yang menghubungkan **Buyer**, **Seller**, **Courier**, dan **Admin** dalam satu ekosistem. Fokus pada toko, warung, UMKM, kuliner, dan bisnis lokal.
 
@@ -160,7 +160,7 @@ Buka http://localhost:5173
 ## Project Structure
 
 ```
-tokonline/
+tokowarung/
 ├── index.html                  # Entry point HTML
 ├── vite.config.js              # Vite config
 ├── firebase.json               # Firebase deploy config
@@ -417,12 +417,12 @@ Sinyal tunggal TIDAK boleh langsung blokir — gunakan composite `riskScore` (LO
 
 ## License
 
-MIT (untuk source code). TokOnline adalah brand dagang — hubungi pemilik untuk penggunaan komersial.
+MIT (untuk source code). TokoWarung adalah brand dagang — hubungi pemilik untuk penggunaan komersial.
 
 ---
 
 ## Contact & Support
 
 - Issue tracker: GitHub Issues (saat repo dibuat)
-- Email: hello@tokonline.com (placeholder)
+- Email: hello@tokowarung.com (placeholder)
 - Untuk bug report: sertakan `trace_id` dari console logs

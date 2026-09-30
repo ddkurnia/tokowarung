@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Firebase App Singleton (Idempotent)
+// TokoWarung — Firebase App Singleton (Idempotent)
 // Inisialisasi Firebase App secara aman, anti-double-init (utk Vite HMR).
 // ============================================
 

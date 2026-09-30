@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Global Constants & Enums
+// TokoWarung — Global Constants & Enums
 // ============================================
 // Semua enum status, role, dan konstanta sistem ada di sini.
 // SATU source of truth — jangan hardcode string status di tempat lain.

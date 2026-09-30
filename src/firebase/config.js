@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Firebase Initialization (CLIENT SDK)
+// TokoWarung — Firebase Initialization (CLIENT SDK)
 // ============================================
 // ⚠️  PENTING:
 // - Semua kredensial berasal dari environment variables (import.meta.env).
@@ -26,7 +26,7 @@ const missing = REQUIRED_ENV.filter((k) => !import.meta.env[k]);
 if (missing.length > 0) {
   // Jangan throw di production build (akan crash Vite). Cukup console.error yang jelas.
   console.error(
-    `[TokOnline] Firebase belum dikonfigurasi. Missing env: ${missing.join(', ')}.\n` +
+    `[TokoWarung] Firebase belum dikonfigurasi. Missing env: ${missing.join(', ')}.\n` +
       `Salin .env.example menjadi .env dan isi nilai dari Firebase Console.\n` +
       `Lihat README.md bagian "Setup Firebase".`
   );
@@ -53,7 +53,7 @@ export const storage = getStorage(app);
 // Debug flag — nonaktif di production
 export const DEBUG_FIREBASE = import.meta.env.DEV && import.meta.env.VITE_DEBUG_FIREBASE === 'true';
 if (DEBUG_FIREBASE) {
-  console.debug('[TokOnline] Firebase initialized for project:', firebaseConfig.projectId);
+  console.debug('[TokoWarung] Firebase initialized for project:', firebaseConfig.projectId);
 }
 
 export { checkInitialized };

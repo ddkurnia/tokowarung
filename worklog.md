@@ -3,7 +3,7 @@
 ---
 Task ID: phase-1
 Agent: main (Super Z)
-Task: Bangun fondasi aplikasi marketplace TokOnline.com (Phase 1) — project setup, Firebase config, role-based auth, design system, core services, basic pages untuk buyer/seller/courier/admin.
+Task: Bangun fondasi aplikasi marketplace TokoWarung (Phase 1) — project setup, Firebase config, role-based auth, design system, core services, basic pages untuk buyer/seller/courier/admin.
 
 Work Log:
 - Analyzed workspace (kosong, fresh start — tidak ada project existing yang harus dipertahankan).

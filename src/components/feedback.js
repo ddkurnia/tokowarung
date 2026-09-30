@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Toast & Modal helpers (global)
+// TokoWarung — Toast & Modal helpers (global)
 // Aksesible, mobile-first. Tanpa dependency.
 // ============================================
 

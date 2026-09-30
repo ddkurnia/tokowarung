@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Helper Utilities
+// TokoWarung — Helper Utilities
 // Fungsi-fungsi kecil yang dipakai lintas modul.
 // ============================================
 

@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 
 // ============================================
-// TokOnline.com — Vite Configuration
+// TokoWarung — Vite Configuration
 // Vanilla JS + Firebase, mobile-first, modular.
 // Tidak ada framework besar (React/Vue/dll).
 // ============================================
@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
     define: {
       // Expose VITE_ env vars to client (sudah otomatis via import.meta.env,
       // tapi kita eksplisit di sini untuk dokumentasi).
-      __APP_VERSION__: JSON.stringify(env.VITE_APP_NAME || 'TokOnline'),
+      __APP_VERSION__: JSON.stringify(env.VITE_APP_NAME || 'TokoWarung'),
     },
   };
 });

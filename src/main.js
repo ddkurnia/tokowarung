@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — App Entry Point
+// TokoWarung — App Entry Point
 // Bootstrap: init Firebase, Auth, Router, layout, dsb.
 // ============================================
 
@@ -81,18 +81,18 @@ async function bootstrap() {
 function updateTitleFromHash() {
   const hash = (window.location.hash || '#/').slice(1);
   const titles = {
-    '/': 'TokOnline — Marketplace Lokal 2026',
-    '/login': 'Masuk — TokOnline',
-    '/register': 'Daftar — TokOnline',
-    '/seller': 'Dashboard Seller — TokOnline',
-    '/courier': 'Dashboard Kurir — TokOnline',
-    '/admin': 'Admin Panel — TokOnline',
+    '/': 'TokoWarung — Marketplace Lokal 2026',
+    '/login': 'Masuk — TokoWarung',
+    '/register': 'Daftar — TokoWarung',
+    '/seller': 'Dashboard Seller — TokoWarung',
+    '/courier': 'Dashboard Kurir — TokoWarung',
+    '/admin': 'Admin Panel — TokoWarung',
   };
-  let title = 'TokOnline';
+  let title = 'TokoWarung';
   if (titles[hash]) title = titles[hash];
-  else if (hash.startsWith('/produk/')) title = 'Detail Produk — TokOnline';
-  else if (hash.startsWith('/search')) title = 'Cari Produk — TokOnline';
-  else if (hash.startsWith('/cart')) title = 'Keranjang — TokOnline';
+  else if (hash.startsWith('/produk/')) title = 'Detail Produk — TokoWarung';
+  else if (hash.startsWith('/search')) title = 'Cari Produk — TokoWarung';
+  else if (hash.startsWith('/cart')) title = 'Keranjang — TokoWarung';
   document.title = title;
 }
 

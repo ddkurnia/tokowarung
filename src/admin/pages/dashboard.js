@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Admin Dashboard
+// TokoWarung — Admin Dashboard
 // ============================================
 
 import { el, EmptyState } from '../../components/ui.js';
@@ -34,7 +34,7 @@ export default async function AdminDashboard({ user, profile }) {
 
   // Sidebar
   const sidebar = el('aside', { className: 'admin-panel__sidebar' });
-  sidebar.appendChild(el('div', { className: 'admin-panel__brand', html: 'TOK<span>Online</span> <small>Admin</small>' }));
+  sidebar.appendChild(el('div', { className: 'admin-panel__brand', html: 'Toko<span>Warung</span> <small>Admin</small>' }));
   ADMIN_NAV.forEach((it) => {
     sidebar.appendChild(
       el('a', {

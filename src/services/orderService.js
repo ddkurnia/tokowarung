@@ -1,5 +1,5 @@
 // ============================================
-// TokOnline — Order Service
+// TokoWarung — Order Service
 // Pembuatan & lifecycle order.
 // Catatan: semua update status penting sebaiknya via Cloud Function
 // untuk integritas finansial. Service ini handle client-side state.
