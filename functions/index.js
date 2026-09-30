@@ -30,6 +30,22 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // ============================================
+// Cloudinary Admin (server-side only — uses API Secret)
+// ============================================
+let cloudinary = null;
+try {
+  cloudinary = require('cloudinary').v2;
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dnpdjhdgr',
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+} catch (e) {
+  console.warn('[functions] cloudinary package belum terinstall. Run: cd functions && npm install');
+}
+
+// ============================================
 // Callable: Update Order Status
 // Dipanggil oleh client (seller, courier, admin) untuk update status order.
 // Melakukan validasi server-side dan log audit.
@@ -183,6 +199,68 @@ exports.logSettingsChange = onDocumentUpdated('settings/{docId}', async (event) 
     newValue: changedFields.reduce((acc, k) => { acc[k] = after[k]; return acc; }, {}),
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
   });
+});
+
+// ============================================
+// Callable: Delete Cloudinary Image (server-side only — uses API Secret)
+// ============================================
+// Client tidak boleh hapus image langsung karena butuh API Secret.
+// Seller hanya bisa hapus image miliknya sendiri (verified via Firestore).
+// ============================================
+exports.deleteCloudinaryImage = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Login diperlukan.');
+  const { publicId, productId } = req.data;
+  if (!publicId) throw new HttpsError('invalid-argument', 'publicId wajib diisi.');
+  if (!cloudinary) throw new HttpsError('failed-precondition', 'Cloudinary belum dikonfigurasi di server.');
+
+  const uid = req.auth.uid;
+  const userSnap = await db.collection('users').doc(uid).get();
+  const user = userSnap.data();
+  if (!user) throw new HttpsError('permission-denied', 'User tidak ditemukan.');
+
+  // Verify ownership: jika productId diberikan, pastikan image milik produk seller
+  if (productId) {
+    const pSnap = await db.collection('products').doc(productId).get();
+    if (!pSnap.exists) throw new HttpsError('not-found', 'Produk tidak ditemukan.');
+    const product = pSnap.data();
+
+    if (user.role === 'SELLER' && product.sellerId !== uid) {
+      throw new HttpsError('permission-denied', 'Anda hanya bisa hapus image milik produk sendiri.');
+    }
+    if (user.role !== 'SELLER' && user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+      throw new HttpsError('permission-denied', 'Hanya seller/admin yang bisa hapus image.');
+    }
+
+    // Remove image dari product.images array
+    const updatedImages = (product.images || []).filter((img) => img.publicId !== publicId);
+    await db.collection('products').doc(productId).update({
+      images: updatedImages,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } else if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+    // Admin bisa hapus tanpa productId (untuk cleanup orphan images)
+  } else {
+    throw new HttpsError('permission-denied', 'Anda tidak punya izin untuk operasi ini.');
+  }
+
+  // Delete from Cloudinary
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+    // Audit log
+    await db.collection('auditLogs').add({
+      actorId: uid,
+      role: user.role,
+      action: 'DELETE_IMAGE',
+      target: publicId,
+      productId: productId || null,
+      result,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { success: true, result };
+  } catch (err) {
+    console.error('[functions] Cloudinary delete error:', err);
+    throw new HttpsError('internal', 'Gagal menghapus image dari Cloudinary.');
+  }
 });
 
 // ============================================

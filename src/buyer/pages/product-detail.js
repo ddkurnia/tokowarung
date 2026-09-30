@@ -7,6 +7,7 @@ import { el, EmptyState, Spinner, StarRating, SectionHeader } from '../../compon
 import { toast, confirmDialog } from '../../components/feedback.js';
 import { getProductById } from '../../services/productService.js';
 import { addToCart } from '../../services/cartService.js';
+import { getImageUrl, getThumbUrl } from '../../services/storageService.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah, haversineKm, estimateShipping } from '../../utils/helpers.js';
 
@@ -71,7 +72,9 @@ function renderProduct(page, product, { user, profile }) {
   const gallery = el('div', { className: 'product-gallery' });
   const mainImg = el('div', { className: 'product-gallery__main' });
   if (product.images?.[0]) {
-    mainImg.appendChild(el('img', { attrs: { src: product.images[0], alt: product.name, loading: 'eager' } }));
+    const firstImg = product.images[0];
+    const mainUrl = firstImg.publicId ? getImageUrl(firstImg.publicId, { width: 800, crop: 'limit', quality: 'auto' }) : firstImg.url || firstImg;
+    mainImg.appendChild(el('img', { attrs: { src: mainUrl, alt: product.name, loading: 'eager' } }));
   } else {
     mainImg.appendChild(el('div', { className: 'product-gallery__placeholder', html: '🖼️' }));
   }
@@ -79,16 +82,18 @@ function renderProduct(page, product, { user, profile }) {
 
   if (product.images?.length > 1) {
     const thumbs = el('div', { className: 'product-gallery__thumbs' });
-    product.images.forEach((src, i) => {
-      const img = el('img', {
-        attrs: { src, alt: product.name + ' foto ' + (i + 1), loading: 'lazy' },
+    product.images.forEach((img, i) => {
+      const thumbUrl = img.publicId ? getThumbUrl(img.publicId, 100) : img.url || img;
+      const mainUrl = img.publicId ? getImageUrl(img.publicId, { width: 800, crop: 'limit', quality: 'auto' }) : img.url || img;
+      const imgEl = el('img', {
+        attrs: { src: thumbUrl, alt: product.name + ' foto ' + (i + 1), loading: 'lazy' },
         onClick: () => {
           const main = gallery.querySelector('.product-gallery__main img');
-          if (main) main.src = src;
+          if (main) main.src = mainUrl;
         },
         className: 'product-gallery__thumb' + (i === 0 ? ' is-active' : ''),
       });
-      thumbs.appendChild(img);
+      thumbs.appendChild(imgEl);
     });
     gallery.appendChild(thumbs);
   }

@@ -70,25 +70,71 @@ node scripts/firebase-deploy-rest.js
 
 Buka Firebase Console untuk project `tokowarung-15b64` dan enable:
 
-### Authentication
+### Authentication ✅ (sudah user aktifkan)
 1. https://console.firebase.google.com/project/tokowarung-15b64/authentication/providers
-2. Enable **Email/Password**
+2. Enable **Email/Password** ( jika belum )
 3. Enable **Google** (opsional, untuk sign-in cepat)
 
-### Cloud Firestore
+### Cloud Firestore ✅ (sudah user aktifkan)
 1. https://console.firebase.google.com/project/tokowarung-15b64/firestore
-2. Klik **"Create database"**
-3. Pilih **Production mode** (security rules sudah strict)
-4. Pilih region: `asia-southeast1` (Singapore — terdekat dengan Indonesia)
+2. Database sudah dibuat — verifikasi region `asia-southeast1` (Singapore)
+3. Production mode (security rules strict sudah di-deploy)
 
-### Cloud Storage
-1. https://console.firebase.google.com/project/tokowarung-15b64/storage
-2. Klik **"Get started"** (akan pakai security rules yang sudah deploy di Step 1)
+### Cloud Storage (Opsional — untuk private docs di masa depan)
+- **Image storage utama pakai CLOUDINARY** (lihat Step 2.B), BUKAN Firebase Storage
+- Firebase Storage rules sudah deny-all untuk public (aman)
+- Bila nanti butuh simpan dokumen private (KTP seller, bukti COD), enable di sini
 
-### Cloud Functions (opsional — untuk fitur Phase 2+)
+### Cloud Functions (untuk fitur Phase 2+)
 1. https://console.firebase.google.com/project/tokowarung-15b64/functions
 2. Upgrade ke **Blaze plan** (pay-as-you-go, ada free tier)
 3. Set region ke `asia-southeast1`
+
+---
+
+## Step 2.B: Setup Cloudinary (Image Storage)
+
+Image storage utama pakai **Cloudinary** (bukan Firebase Storage) untuk performance & optimization.
+
+### Setup Cloudinary Account
+
+1. Buka https://cloudinary.com → Sign up (free tier: 25 credits)
+2. Cloud Name: `dnpdjhdgr` (sudah dikonfigurasi)
+
+### Setup Upload Preset (PENTING)
+
+1. Login ke https://cloudinary.com/console
+2. Settings → **Upload** → scroll ke **Upload presets**
+3. Klik **"Add upload preset"**:
+   - **Name**: `tokowarung` (harus sama persis)
+   - **Signing Mode**: **Unsigned** ⚠️ CRITICAL — biar bisa upload dari browser tanpa API secret
+   - **Resource type**: Image
+   - **Allowed formats**: jpg, png, webp, gif
+   - **Max file size**: 5242880 bytes (5 MB)
+   - **Unique filename**: Enabled
+4. Klik **Save**
+
+### Environment Variables
+
+**Client (PUBLIC, di .env & Vercel):**
+- `VITE_CLOUDINARY_CLOUD_NAME` = `dnpdjhdgr`
+- `VITE_CLOUDINARY_UPLOAD_PRESET` = `tokowarung`
+
+**Server (RAHASIA, di `functions/.env` — JANGAN commit):**
+```
+CLOUDINARY_CLOUD_NAME=dnpdjhdgr
+CLOUDINARY_API_KEY=742421365262691
+CLOUDINARY_API_SECRET=<api-secret-anda>
+```
+
+⚠️ **JANGAN commit `functions/.env` ke GitHub!** Sudah ada di `.gitignore`.
+
+### Verifikasi Cloudinary
+
+1. Register sebagai BUYER di aplikasi
+2. (Phase 2) Test upload product image sebagai seller
+3. Cek https://cloudinary.com/console → Media Library → image muncul
+4. Image di app akan tampil sebagai WebP (auto-convert), ukuran lebih kecil
 
 ---
 

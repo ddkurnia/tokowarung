@@ -7,6 +7,7 @@ import { toast } from '../../components/feedback.js';
 import { logout } from '../../auth/authService.js';
 import { navigate } from '../../router/router.js';
 import { getSellerProfile, listSellerProducts } from '../../services/sellerDashboardService.js';
+import { getThumbUrl } from '../../services/storageService.js';
 import { ROLE } from '../../utils/constants.js';
 import { formatRupiah } from '../../utils/helpers.js';
 
@@ -137,7 +138,7 @@ async function loadRecentProducts(container, sellerId) {
     items.forEach((p) => {
       list.appendChild(
         el('a', { className: 'product-row', href: '#/seller/products/' + p.id }, [
-          el('div', { className: 'product-row__img' }, p.images?.[0] ? el('img', { attrs: { src: p.images[0], alt: p.name, loading: 'lazy' } }) : el('span', { html: '🖼️' })),
+          el('div', { className: 'product-row__img' }, p.images?.[0] ? el('img', { attrs: { src: p.images[0].publicId ? getThumbUrl(p.images[0].publicId, 96) : (p.images[0].url || p.images[0]), alt: p.name, loading: 'lazy' } }) : el('span', { html: '🖼️' })),
           el('div', { className: 'product-row__content' }, [
             el('h3', { className: 'product-row__name', text: p.name }),
             el('div', { className: 'row gap-2' }, [

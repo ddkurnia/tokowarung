@@ -6,6 +6,7 @@
 import { BuyerHeader, BuyerBottomNav, ProductCard, SkeletonCard, SectionHeader, EmptyState, el } from '../../components/ui.js';
 import { listApprovedProducts } from '../../services/productService.js';
 import { listNearbyStores } from '../../services/storeService.js';
+import { getThumbUrl } from '../../services/storageService.js';
 import { DEFAULT_CATEGORIES } from '../../utils/constants.js';
 import { formatRupiah, formatCompact } from '../../utils/helpers.js';
 import { navigate } from '../../router/router.js';
@@ -112,12 +113,15 @@ async function loadProducts(container) {
       return;
     }
     items.forEach((p) => {
+      // Cloudinary: optimize image untuk product card (small thumb)
+      const img = p.images?.[0];
+      const imageUrl = img ? (img.publicId ? getThumbUrl(img.publicId, 240) : img.url || img) : null;
       container.appendChild(ProductCard({
         id: p.id,
         name: p.name,
         price: p.price,
         originalPrice: p.originalPrice,
-        image: p.images?.[0] || null,
+        image: imageUrl,
         store: p.storeName || '',
         rating: p.rating,
         sold: p.soldCount,

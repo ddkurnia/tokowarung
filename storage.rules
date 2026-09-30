@@ -1,15 +1,20 @@
 // ============================================
-// TokOnline — Firebase Storage Rules
+// TokoWarung — Firebase Storage Rules
 // ============================================
-// Hanya image (jpeg/png/webp) yang diperbolehkan, max 5MB.
-// Tidak boleh upload executable, script, atau file besar.
+// CATATAN PENTING:
+// Image storage utama pakai CLOUDINARY (bukan Firebase Storage).
+// Firebase Storage rules tetap dipertahankan untuk:
+//   - Private documents (seller docs, courier docs) — bila dibutuhkan di masa depan
+//   - Order proof photos (COD, delivery confirmation) — bila ingin simpan private
+//
+// Saat ini, semua product images & avatars akan di-upload ke Cloudinary via
+// UNSIGNED UPLOAD PRESET (config di .env). Tidak butuh Firebase Storage.
 // ============================================
 
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Helpers
     function isSignedIn() { return request.auth != null; }
     function uid() { return request.auth.uid; }
     function userDoc() {
@@ -18,8 +23,6 @@ service firebase.storage {
     function isAdmin() {
       return isSignedIn() && (userDoc().role == 'ADMIN' || userDoc().role == 'SUPER_ADMIN');
     }
-    function isSeller() { return isSignedIn() && userDoc().role == 'SELLER'; }
-    function isCourier() { return isSignedIn() && userDoc().role == 'COURIER'; }
     function isImage() {
       return request.resource.contentType.matches('image/(jpeg|png|webp|jpg)');
     }
@@ -27,45 +30,8 @@ service firebase.storage {
       return request.resource.size < 5 * 1024 * 1024;
     }
 
-    // Product images: /products/{sellerId}/{productId}/{filename}
-    match /products/{sellerId}/{productId}/{fileName} {
-      allow read: if true; // public bisa lihat gambar produk
-      allow write: if isSeller() && sellerId == uid() && isImage() && isUnder5MB()
-                    || isAdmin();
-    }
-
-    // Avatar / user photo: /avatars/{userId}/{filename}
-    match /avatars/{userId}/{fileName} {
-      allow read: if true;
-      allow write: if isSignedIn() && userId == uid() && isImage() && isUnder5MB();
-    }
-
-    // Seller documents (KTP, NPWP, dll) — PRIVATE
-    // Hanya seller pemilik & admin yang bisa read.
-    match /sellerDocs/{sellerId}/{docType}/{fileName} {
-      allow read: if isSignedIn() && (sellerId == uid() || isAdmin());
-      allow write: if isSeller() && sellerId == uid() && isImage() && isUnder5MB();
-    }
-
-    // Courier documents — PRIVATE
-    match /courierDocs/{courierId}/{docType}/{fileName} {
-      allow read: if isSignedIn() && (courierId == uid() || isAdmin());
-      allow write: if isCourier() && courierId == uid() && isImage() && isUnder5MB();
-    }
-
-    // Order proof (photo pengiriman) — courier upload, buyer & admin read
-    match /orderProof/{orderId}/{fileName} {
-      allow read: if isSignedIn() && isAdmin();
-      allow write: if isCourier() && isImage() && isUnder5MB();
-    }
-
-    // Report evidence
-    match /reports/{reportId}/{fileName} {
-      allow read: if isAdmin();
-      allow write: if isSignedIn() && isImage() && isUnder5MB();
-    }
-
-    // Default: deny all
+    // Default: deny all. Firebase Storage tidak dipakai untuk image storage publik
+    // (image via Cloudinary). Hanya enable jika nanti dibutuhkan untuk private docs.
     match /{allPaths=**} {
       allow read, write: if false;
     }
