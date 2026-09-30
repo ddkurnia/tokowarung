@@ -159,9 +159,19 @@ service cloud.firestore {
                     && isPositiveAmount(request.resource.data.price);
 
       // Seller bisa update produk miliknya, TIDAK boleh set status ke APPROVED sendiri
+      // BUYER juga bisa update reservedStock (untuk reserve stok saat create order) — strict validation
       allow update: if (isSeller() && resource.data.sellerId == uid()
                     && request.resource.data.status != 'APPROVED')
-                    || isAdmin();
+                    || isAdmin()
+                    // Buyer exception: hanya boleh update field reservedStock + updatedAt
+                    // Tidak boleh ubah field lain (price, name, status, sellerId, dll)
+                    || (isBuyer()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reservedStock', 'updatedAt'])
+                        && request.resource.data.reservedStock is number
+                        && request.resource.data.reservedStock >= 0
+                        && request.resource.data.reservedStock <= resource.data.stock
+                        && request.resource.data.sellerId == resource.data.sellerId
+                    );
 
       // Seller bisa hapus produk miliknya (soft delete recommended via status=SUSPENDED)
       allow delete: if (isSeller() && resource.data.sellerId == uid()) || isAdmin();

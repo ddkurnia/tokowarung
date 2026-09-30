@@ -110,17 +110,12 @@ export async function createOrder({
     };
     tx.set(orderRef, orderPayload);
 
-    // 3. Create order items sub-collection (utk audit & detail per item)
-    for (const it of itemMeta) {
-      const itemRef = doc(collection(db, COLLECTION.ORDERS, orderRef.id, COLLECTION.ORDER_ITEMS));
-      tx.set(itemRef, {
-        ...it,
-        sellerId,
-        buyerId,
-        orderId: orderRef.id,
-        createdAt: serverTimestamp(),
-      });
-    }
+    // NOTE: Order items sub-collection creation dihapus karena:
+    // 1. Items sudah disimpan di order.items array (audit-able via order doc)
+    // 2. Firestore rules sebelumnya deny write ke sub-collection (allow write: if false)
+    // 3. Menghindari PERMISSION_DENIED error saat createOrder
+    // 4. Save 1 Firestore write per item (lebih hemat)
+    // Untuk audit per-item di masa depan, gunakan Cloud Functions trigger on order create.
 
     return { orderId: orderRef.id, total };
   });
