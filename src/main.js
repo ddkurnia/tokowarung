@@ -14,7 +14,14 @@ const LoginPage = () => import('./auth/pages/login.js');
 const RegisterPage = () => import('./auth/pages/register.js');
 const HomePage = () => import('./buyer/pages/home.js');
 const ProductDetailPage = () => import('./buyer/pages/product-detail.js');
+const CartPage = () => import('./buyer/pages/cart.js');
+const CheckoutPage = () => import('./buyer/pages/checkout.js');
+const OrderSuccessPage = () => import('./buyer/pages/order-success.js');
+const BuyerOrdersPage = () => import('./buyer/pages/orders.js');
+const BuyerOrderDetailPage = () => import('./buyer/pages/order-detail.js');
+const ProfilePage = () => import('./buyer/pages/profile.js');
 const SellerDashboard = () => import('./seller/pages/dashboard.js');
+const SellerOrdersPage = () => import('./seller/pages/orders.js');
 const CourierDashboard = () => import('./courier/pages/dashboard.js');
 const AdminDashboard = () => import('./admin/pages/dashboard.js');
 const NotFoundPage = () => import('./pages/not-found.js');
@@ -27,8 +34,17 @@ function registerAllRoutes() {
   registerRoute(ROUTE.REGISTER, null, RegisterPage);
   registerRoute(ROUTE.PRODUCT_DETAIL, null, ProductDetailPage);
 
+  // Buyer (login optional — pages handle their own guards)
+  registerRoute(ROUTE.BUYER_CART, null, CartPage);
+  registerRoute(ROUTE.BUYER_CHECKOUT, null, CheckoutPage);
+  registerRoute(ROUTE.BUYER_CHECKOUT_SUCCESS, null, OrderSuccessPage);
+  registerRoute(ROUTE.BUYER_ORDERS, null, BuyerOrdersPage);
+  registerRoute(ROUTE.BUYER_ORDER_DETAIL, null, BuyerOrderDetailPage);
+  registerRoute(ROUTE.BUYER_PROFILE, null, ProfilePage);
+
   // Seller (protected)
   registerRoute(ROUTE.SELLER_DASHBOARD, [ROLE.SELLER], SellerDashboard);
+  registerRoute(ROUTE.SELLER_ORDERS, [ROLE.SELLER], SellerOrdersPage);
 
   // Courier (protected)
   registerRoute(ROUTE.COURIER_DASHBOARD, [ROLE.COURIER], CourierDashboard);

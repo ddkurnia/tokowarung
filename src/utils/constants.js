@@ -237,16 +237,19 @@ export const ROUTE = Object.freeze({
   // Buyer
   BUYER_CART: '/cart',
   BUYER_CHECKOUT: '/checkout',
+  BUYER_CHECKOUT_SUCCESS: '/checkout/success/:id',
   BUYER_ORDERS: '/orders',
   BUYER_ORDER_DETAIL: '/orders/:id',
   BUYER_WISHLIST: '/wishlist',
   BUYER_PROFILE: '/profile',
+  BUYER_NOTIFICATIONS: '/notifications',
 
   // Seller
   SELLER_DASHBOARD: '/seller',
   SELLER_PRODUCTS: '/seller/products',
   SELLER_NEW_PRODUCT: '/seller/products/new',
   SELLER_ORDERS: '/seller/orders',
+  SELLER_ORDER_DETAIL: '/seller/orders/:id',
   SELLER_FINANCE: '/seller/finance',
   SELLER_SETTINGS: '/seller/settings',
 
