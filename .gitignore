@@ -58,3 +58,9 @@ coverage/
 *.pid
 *.seed
 *.pid.lock
+
+# Skills folder (internal, not part of TokOnline app)
+skills/
+upload/
+serviceAccount.json
+serviceAccountKey.json
