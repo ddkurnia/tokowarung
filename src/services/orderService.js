@@ -65,10 +65,14 @@ export async function createOrder({
   const total = subtotal - discount + shippingFee + serviceFee;
 
   // Atomic transaction: create order + reserve stock + create order items
+  // FIRESTORE RULE: ALL reads must execute BEFORE ALL writes in a transaction.
+  // So we do 2 separate loops: (1) read & validate all products, (2) write all updates.
   const orderRef = doc(collection(db, COLLECTION.ORDERS)); // auto id
   const result = await runTransaction(db, async (tx) => {
-    // 1. Verify & reserve stock for each item
     const itemMeta = [];
+    const productRefs = [];
+
+    // 1. PHASE READ: Read & validate ALL products first (NO writes yet)
     for (const it of items) {
       const pRef = doc(db, COLLECTION.PRODUCTS, it.productId);
       const pSnap = await tx.get(pRef);
@@ -77,16 +81,20 @@ export async function createOrder({
       if (p.status !== PRODUCT_STATUS.APPROVED) throw new Error(`Produk ${it.name} tidak tersedia.`);
       const availStock = (p.stock || 0) - (p.reservedStock || 0);
       if (availStock < it.qty) throw new Error(`Stok ${it.name} tidak cukup (sisa ${availStock}).`);
-
-      // Reserve stock
-      tx.update(pRef, {
-        reservedStock: increment(it.qty),
-        updatedAt: serverTimestamp(),
-      });
-      itemMeta.push({ productId: it.productId, name: p.name, price: it.price, qty: it.qty });
+      // Save for write phase
+      productRefs.push({ ref: pRef, qty: it.qty });
+      itemMeta.push({ productId: it.productId, name: p.name, price: it.price, qty: it.qty, weight: it.weight || 0 });
     }
 
-    // 2. Create order
+    // 2. PHASE WRITE: Now do all writes (after all reads complete)
+    for (const { ref, qty } of productRefs) {
+      tx.update(ref, {
+        reservedStock: increment(qty),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    // 3. Create order (write)
     const orderPayload = {
       buyerId,
       sellerId,
