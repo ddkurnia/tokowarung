@@ -439,7 +439,7 @@ export async function markArrived(orderId, courierId) {
 
 /**
  * Buyer verify delivery OTP (entered by courier).
- * If valid → status = DELIVERED, clear delivery OTP.
+ * If valid → status = DELIVERED, clear delivery OTP, AUTO-UPDATE WALLETS.
  *
  * @param {string} orderId
  * @param {string} buyerId
@@ -467,6 +467,17 @@ export async function verifyDeliveryOtp(orderId, buyerId, otp) {
       at: new Date().toISOString(),
     }),
   });
+
+  // Phase 3: AUTO-UPDATE WALLETS (seller pending balance + courier earnings + COD collected)
+  // Catatan: ini client-side, kurang aman vs Cloud Function. Tapi untuk MVP tanpa Blaze cukup.
+  try {
+    const { settleWalletOnDelivery } = await import('./walletService.js');
+    const updatedOrder = { ...order, id: orderId, orderStatus: 'DELIVERED' };
+    await settleWalletOnDelivery(updatedOrder, 3); // 3% commission default
+  } catch (err) {
+    console.error('[orderService] Failed to auto-settle wallet:', err);
+    // Don't fail the whole operation if wallet update fails — admin can fix manually
+  }
 
   return { success: true };
 }

@@ -23,10 +23,13 @@ const ProfilePage = () => import('./buyer/pages/profile.js');
 const SellerDashboard = () => import('./seller/pages/dashboard.js');
 const SellerOrdersPage = () => import('./seller/pages/orders.js');
 const SellerOrderDetailPage = () => import('./seller/pages/order-detail.js');
+const SellerFinancePage = () => import('./seller/pages/finance.js');
 const CourierDashboard = () => import('./courier/pages/dashboard.js');
 const CourierOrdersPage = () => import('./courier/pages/orders.js');
 const CourierOrderDetailPage = () => import('./courier/pages/order-detail.js');
+const CourierWalletPage = () => import('./courier/pages/wallet.js');
 const AdminDashboard = () => import('./admin/pages/dashboard.js');
+const AdminFinancePage = () => import('./admin/pages/finance.js');
 const NotFoundPage = () => import('./pages/not-found.js');
 
 // ----- Register routes -----
@@ -49,14 +52,17 @@ function registerAllRoutes() {
   registerRoute(ROUTE.SELLER_DASHBOARD, [ROLE.SELLER], SellerDashboard);
   registerRoute(ROUTE.SELLER_ORDERS, [ROLE.SELLER], SellerOrdersPage);
   registerRoute(ROUTE.SELLER_ORDER_DETAIL, [ROLE.SELLER], SellerOrderDetailPage);
+  registerRoute(ROUTE.SELLER_FINANCE, [ROLE.SELLER], SellerFinancePage);
 
   // Courier (protected)
   registerRoute(ROUTE.COURIER_DASHBOARD, [ROLE.COURIER], CourierDashboard);
   registerRoute(ROUTE.COURIER_ORDERS, [ROLE.COURIER], CourierOrdersPage);
   registerRoute(ROUTE.COURIER_ORDER_DETAIL, [ROLE.COURIER], CourierOrderDetailPage);
+  registerRoute(ROUTE.COURIER_WALLET, [ROLE.COURIER], CourierWalletPage);
 
   // Admin (protected)
   registerRoute(ROUTE.ADMIN_DASHBOARD, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminDashboard);
+  registerRoute(ROUTE.ADMIN_FINANCE, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminFinancePage);
 
   // 404
   setNotFound(async () => {

@@ -6,6 +6,7 @@
 import { el, EmptyState, BuyerHeader, BuyerBottomNav } from '../../components/ui.js';
 import { toast, confirmDialog, showModal } from '../../components/feedback.js';
 import { getOrderById, updateOrderStatus, cancelOrder, verifyDeliveryOtp } from '../../services/orderService.js';
+import { submitManualPaymentProof } from '../../services/paymentService.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah, formatDate } from '../../utils/helpers.js';
 import { ORDER_STATUS, PAYMENT_METHOD } from '../../utils/constants.js';
@@ -205,6 +206,32 @@ function renderTimeline(order) {
 function renderActions(order, user, container) {
   const actions = [];
 
+  // Upload payment proof (only when PENDING_PAYMENT and not COD)
+  if (order.orderStatus === ORDER_STATUS.PENDING_PAYMENT && order.paymentMethod !== PAYMENT_METHOD.COD) {
+    actions.push(
+      el('button', {
+        className: 'btn btn-primary btn-block',
+        text: '📤 Upload Bukti Pembayaran',
+        onClick: () => showPaymentProofModal(order, user, container),
+      })
+    );
+    actions.push(
+      el('p', { className: 'text-xs text-muted text-center mt-2', text: `Transfer ${formatRupiah(order.total)} ke rekening platform, lalu upload bukti untuk verifikasi admin (1-3 jam).` })
+    );
+  }
+
+  // COD info (only when PENDING_PAYMENT and COD)
+  if (order.orderStatus === ORDER_STATUS.PENDING_PAYMENT && order.paymentMethod === PAYMENT_METHOD.COD) {
+    actions.push(
+      el('div', { className: 'banner banner-info' }, [
+        el('div', {}, [
+          el('h3', { className: 'banner__title', text: '💵 Pembayaran COD' }),
+          el('p', { className: 'banner__desc', text: `Siapkan uang tunai ${formatRupiah(order.total)} saat kurir sampai. Tidak perlu upload bukti pembayaran.` }),
+        ]),
+      ])
+    );
+  }
+
   // Cancel order (only when PENDING_PAYMENT or PAID)
   if ([ORDER_STATUS.PENDING_PAYMENT, ORDER_STATUS.PAID].includes(order.orderStatus)) {
     actions.push(
@@ -271,4 +298,105 @@ function renderActions(order, user, container) {
 
   if (actions.length === 0) return null;
   return el('div', { className: 'mt-4' }, actions);
+}
+
+// ============================================
+// PAYMENT PROOF UPLOAD MODAL (Phase 3)
+// ============================================
+
+function showPaymentProofModal(order, user, container) {
+  let fileInput, previewImg, senderBankInput, senderNameInput, noteInput;
+  let selectedFile = null;
+
+  const modal = showModal({
+    title: 'Upload Bukti Pembayaran',
+    variant: 'bottom',
+    closable: true,
+    content: el('div', {}, [
+      el('div', { className: 'banner banner-info mb-4' }, [
+        el('div', {}, [
+          el('h3', { className: 'banner__title', text: '💵 Transfer ke Rekening Platform' }),
+          el('p', { className: 'banner__desc', text: `Total: ${formatRupiah(order.total)} via ${order.paymentMethod}` }),
+          el('p', { className: 'text-xs text-muted mt-2', text: 'Rekening platform akan ditambahkan oleh admin. Untuk demo: transfer ke rekening apapun, upload bukti, admin akan verify manual.' }),
+        ]),
+      ]),
+      el('div', { className: 'field mb-4' }, [
+        el('label', { className: 'field-label', text: 'Foto Bukti Transfer' }),
+        fileInput = el('input', {
+          className: 'input',
+          attrs: { type: 'file', accept: 'image/jpeg,image/png,image/webp' },
+          listeners: {
+            change: (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              if (file.size > 5 * 1024 * 1024) {
+                toast.error('Ukuran file maksimal 5MB.');
+                e.target.value = '';
+                return;
+              }
+              selectedFile = file;
+              // Preview
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                if (previewImg) previewImg.src = ev.target.result;
+              };
+              reader.readAsDataURL(file);
+            },
+          },
+        }),
+      ]),
+      previewImg = el('img', { className: 'payment-proof-preview', attrs: { alt: 'Preview' }, style: { display: 'none', width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', marginBottom: '16px' } }),
+      el('div', { className: 'field mb-4' }, [
+        el('label', { className: 'field-label', text: 'Bank Pengirim (opsional)' }),
+        senderBankInput = el('input', { className: 'input', attrs: { type: 'text', placeholder: 'BCA, Mandiri, BNI, dll' } }),
+      ]),
+      el('div', { className: 'field mb-4' }, [
+        el('label', { className: 'field-label', text: 'Nama Pengirim (opsional)' }),
+        senderNameInput = el('input', { className: 'input', attrs: { type: 'text', placeholder: 'Nama sesuai rekening' } }),
+      ]),
+      el('div', { className: 'field mb-4' }, [
+        el('label', { className: 'field-label', text: 'Catatan (opsional)' }),
+        noteInput = el('textarea', { className: 'textarea', attrs: { placeholder: 'Catatan untuk admin', rows: '2' } }),
+      ]),
+    ]),
+    actions: [
+      { label: 'Batal', variant: 'secondary', onClick: (c) => c() },
+      {
+        label: 'Upload & Submit',
+        variant: 'primary',
+        onClick: async (c) => {
+          if (!selectedFile) {
+            toast.error('Pilih file bukti transfer dulu.');
+            return;
+          }
+          try {
+            await submitManualPaymentProof({
+              orderId: order.id,
+              buyerId: user.uid,
+              paymentMethod: order.paymentMethod,
+              proofFile: selectedFile,
+              senderBank: senderBankInput.value.trim(),
+              senderAccountName: senderNameInput.value.trim(),
+              note: noteInput.value.trim(),
+            });
+            toast.success('Bukti pembayaran berhasil diupload! Admin akan verify dalam 1-3 jam.');
+            c();
+            loadOrder(container, order.id, user);
+          } catch (err) {
+            console.error('[payment proof] upload error:', err);
+            toast.error(err.message || 'Gagal upload bukti. Coba lagi.');
+          }
+        },
+      },
+    ],
+  });
+
+  // Show preview image when file selected
+  fileInput?.addEventListener('change', () => {
+    if (selectedFile) {
+      previewImg.style.display = 'block';
+    } else {
+      previewImg.style.display = 'none';
+    }
+  });
 }

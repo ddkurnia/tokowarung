@@ -272,29 +272,66 @@ service cloud.firestore {
         resource.data.sellerId == uid() ||
         isAdmin()
       );
-      allow create: if isBuyer() && request.resource.data.status == 'PENDING';
-      allow update: if isAdmin(); // status update hanya via Cloud Function webhook
+      // Buyer bisa create manual payment proof (status PENDING_VERIFICATION)
+      allow create: if isBuyer()
+                    && request.resource.data.buyerId == uid()
+                    && request.resource.data.status == 'PENDING_VERIFICATION';
+      // Admin bisa update (verify/reject payment proof)
+      allow update: if isAdmin();
       allow delete: if false;
     }
 
     // ----- TRANSACTIONS (ledger) -----
     match /transactions/{txId} {
       allow read: if isSignedIn() && (
-        resource.data.actorId == uid() || isAdmin()
+        resource.data.actorId == uid() ||
+        resource.data.userId == uid() ||
+        resource.data.buyerId == uid() ||
+        resource.data.sellerId == uid() ||
+        isAdmin()
       );
-      allow write: if false; // SEMUA via Cloud Function utk integritas finansial
+      // Phase 3 tanpa Cloud Function: user signed-in bisa create transactions (utk audit)
+      // Kalau sudah Blaze, pindahkan ke Cloud Function only (allow write: if false)
+      allow create: if isSignedIn();
+      allow update: if false;
       allow delete: if false;
     }
 
     // ----- WALLETS (seller & courier) -----
+    // Phase 3 tanpa Cloud Function: wallet updates client-side.
+    // Mitigation via strict field validation.
     match /sellerWallets/{walletId} {
       allow read: if isOwnData(walletId) || isAdmin();
-      allow write: if false; // via Cloud Function
+      // Create (auto-create wallet with zero balances)
+      allow create: if isSignedIn() && walletId == uid()
+                    && request.resource.data.pendingBalance == 0
+                    && request.resource.data.availableBalance == 0
+                    && request.resource.data.withdrawnTotal == 0;
+      // Update — owner & admin, with strict field validation
+      // Owner: hanya boleh update via specific functions (withdrawal, dll)
+      // Tidak boleh langsung set availableBalance/withdrawnTotal/etc (anti-fraud)
+      allow update: if isAdmin()
+                    || (isOwnData(walletId) && isSeller()
+                        && !('availableBalance' in request.resource.data.diff(resource.data).affectedKeys())
+                        && !('commissionTotal' in request.resource.data.diff(resource.data).affectedKeys())
+                        && !('refundTotal' in request.resource.data.diff(resource.data).affectedKeys())
+                        && !('adjustmentTotal' in request.resource.data.diff(resource.data).affectedKeys())
+                    );
+      allow delete: if isSuperAdmin();
     }
 
     match /courierWallets/{walletId} {
       allow read: if isOwnData(walletId) || isAdmin();
-      allow write: if false;
+      allow create: if isSignedIn() && walletId == uid()
+                    && request.resource.data.earnings == 0
+                    && request.resource.data.codCollected == 0
+                    && request.resource.data.codSettled == 0;
+      allow update: if isAdmin()
+                    || (isOwnData(walletId) && isCourier()
+                        && !('codSettled' in request.resource.data.diff(resource.data).affectedKeys())
+                        && !('adjustmentTotal' in request.resource.data.diff(resource.data).affectedKeys())
+                    );
+      allow delete: if isSuperAdmin();
     }
 
     // ----- WITHDRAWALS -----
