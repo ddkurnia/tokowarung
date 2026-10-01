@@ -2229,3 +2229,17 @@
 .data-table tbody tr:hover {
   background: var(--color-surface-2);
 }
+
+/* ----- FIX: checkout/cart pages punya padding-bottom agar tidak tertutup bottom-nav ----- */
+.buyer-checkout, .buyer-cart {
+  padding-bottom: calc(var(--mobile-bottom-nav-h) + var(--space-8) + var(--safe-area-bottom));
+}
+
+/* Hide bottom-nav di checkout (tidak perlu navigasi saat checkout) */
+.buyer-checkout .bottom-nav {
+  display: none !important;
+}
+
+.buyer-checkout {
+  padding-bottom: var(--space-8);
+}

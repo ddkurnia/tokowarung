@@ -64,7 +64,7 @@ export function initAuth() {
     if (!firebaseUser) {
       currentUser = null;
       currentUserProfile = null;
-      notifyListeners(null);
+      notifyListeners({ user: null, profile: null });
       return;
     }
 
@@ -316,7 +316,7 @@ export async function logout() {
   await signOut(auth);
   currentUser = null;
   currentUserProfile = null;
-  notifyListeners(null);
+  notifyListeners({ user: null, profile: null });
 }
 
 /**
