@@ -391,7 +391,10 @@ service cloud.firestore {
     // ----- REPORTS -----
     match /reports/{reportId} {
       allow read: if isAdmin() || isOwnData(resource.data.reporterId);
-      allow create: if isSignedIn() && request.resource.data.reporterId == uid();
+      allow create: if isSignedIn() && request.resource.data.reporterId == uid()
+                    && request.resource.data.type in ['PRODUCT', 'SELLER', 'COURIER', 'ORDER', 'REVIEW', 'CHAT']
+                    && request.resource.data.priority in ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+                    && isNonEmptyString(request.resource.data.reason, 100);
       allow update: if isAdmin();
       allow delete: if isSuperAdmin();
     }
@@ -401,15 +404,25 @@ service cloud.firestore {
       allow read: if isSignedIn() && (
         uid() in resource.data.participants || isAdmin()
       );
-      allow create: if isSignedIn() && (uid() in request.resource.data.participants);
-      allow update: if isAdmin();
+      allow create: if isSignedIn()
+                    && (uid() in request.resource.data.participants)
+                    && request.resource.data.type in ['BUYER_VS_SELLER', 'BUYER_VS_COURIER', 'SELLER_VS_COURIER']
+                    && isNonEmptyString(request.resource.data.reason, 200);
+      // Participants bisa add message ke dispute mereka
+      // Admin bisa resolve/close
+      allow update: if isAdmin()
+                    || (isSignedIn() && uid() in resource.data.participants
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages', 'updatedAt'])
+                    );
       allow delete: if false;
     }
 
     // ----- INCIDENTS -----
     match /incidents/{incidentId} {
       allow read: if isAdmin() || isOwnData(resource.data.reporterId);
-      allow create: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.type in ['COURIER_NO_DELIVERY', 'COURIER_MISSING', 'COD_NOT_SETTLED', 'PRODUCT_DAMAGED', 'PRODUCT_PROHIBITED', 'SELLER_FRAUD', 'BUYER_FRAUD', 'COURIER_FRAUD', 'PAYMENT_ISSUE', 'OTHER']
+                    && isNonEmptyString(request.resource.data.description, 1000);
       allow update: if isAdmin();
       allow delete: if isSuperAdmin();
     }
@@ -417,7 +430,9 @@ service cloud.firestore {
     // ----- VIOLATIONS -----
     match /violations/{violationId} {
       allow read: if isAdmin() || isOwnData(resource.data.sellerId);
-      allow create: if isAdmin();
+      allow create: if isAdmin()
+                    && request.resource.data.action in ['WARNING', 'RESTRICTED', 'SUSPENDED', 'BANNED']
+                    && isNonEmptyString(request.resource.data.description, 1000);
       allow update: if isAdmin();
       allow delete: if false; // RIWAYAT PELANGGARAN TIDAK BOLEH DIHAPUS
     }

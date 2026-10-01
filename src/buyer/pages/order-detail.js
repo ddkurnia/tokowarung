@@ -7,6 +7,8 @@ import { el, EmptyState, BuyerHeader, BuyerBottomNav } from '../../components/ui
 import { toast, confirmDialog, showModal } from '../../components/feedback.js';
 import { getOrderById, updateOrderStatus, cancelOrder, verifyDeliveryOtp } from '../../services/orderService.js';
 import { submitManualPaymentProof } from '../../services/paymentService.js';
+import { createDispute } from '../../services/disputeService.js';
+import { showReportModal } from '../../components/reportModal.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah, formatDate } from '../../utils/helpers.js';
 import { ORDER_STATUS, PAYMENT_METHOD } from '../../utils/constants.js';
@@ -285,16 +287,39 @@ function renderActions(order, user, container) {
     );
   }
 
-  // Request refund (when DELIVERED)
-  if (order.orderStatus === ORDER_STATUS.DELIVERED) {
+  // Request refund / Open dispute (when DELIVERED or any active status)
+  if ([ORDER_STATUS.DELIVERED, ORDER_STATUS.PAID, ORDER_STATUS.PICKED_UP, ORDER_STATUS.DELIVERING, ORDER_STATUS.ARRIVED].includes(order.orderStatus)) {
     actions.push(
       el('button', {
         className: 'btn btn-secondary btn-block',
-        text: 'Ajukan Refund',
-        onClick: () => toast.info('Fitur refund akan tersedia di Phase 4 (Dispute Center).'),
+        text: '⚖️ Buka Dispute dengan Seller',
+        onClick: () => showDisputeModal(order, user, 'BUYER_VS_SELLER', order.sellerId),
       })
     );
+
+    // Report courier (if assigned)
+    if (order.courierId) {
+      actions.push(
+        el('button', {
+          className: 'btn btn-secondary btn-block',
+          text: '🛵 Buka Dispute dengan Kurir',
+          onClick: () => showDisputeModal(order, user, 'BUYER_VS_COURIER', order.courierId),
+        })
+      );
+    }
   }
+
+  // Report order (always)
+  actions.push(
+    el('button', {
+      className: 'btn btn-ghost btn-block',
+      text: '🚨 Laporkan Order',
+      onClick: () => {
+        if (!user) { toast.error('Login dulu.'); return; }
+        showReportModal({ user, type: 'ORDER', targetId: order.id, targetName: 'Order #' + order.id.slice(-8).toUpperCase() });
+      },
+    })
+  );
 
   if (actions.length === 0) return null;
   return el('div', { className: 'mt-4' }, actions);
@@ -398,5 +423,88 @@ function showPaymentProofModal(order, user, container) {
     } else {
       previewImg.style.display = 'none';
     }
+  });
+}
+
+// ============================================
+// DISPUTE CREATION MODAL (Phase 4)
+// ============================================
+
+function showDisputeModal(order, user, type, counterpartyId) {
+  let reasonInput, descriptionInput, fileInput, selectedFiles = [];
+
+  showModal({
+    title: 'Buka Dispute',
+    variant: 'bottom',
+    closable: true,
+    content: el('div', {}, [
+      el('p', { className: 'text-sm text-muted mb-4', text: `Order #${order.id.slice(-8).toUpperCase()} • Type: ${type.replace(/_/g, ' ')}` }),
+
+      el('div', { className: 'field mb-4' }, [
+        el('label', { className: 'field-label', text: 'Alasan Dispute (wajib)' }),
+        reasonInput = el('input', { className: 'input', attrs: { type: 'text', placeholder: 'Contoh: Produk tidak sesuai deskripsi', required: '' } }),
+      ]),
+
+      el('div', { className: 'field mb-4' }, [
+        el('label', { className: 'field-label', text: 'Deskripsi Detail (wajib, min 20 karakter)' }),
+        descriptionInput = el('textarea', { className: 'textarea', attrs: { placeholder: 'Jelaskan masalah dengan detail...', rows: '4', minlength: '20', required: '' } }),
+      ]),
+
+      el('div', { className: 'field mb-4' }, [
+        el('label', { className: 'field-label', text: 'Bukti (opsional, maks 3 foto)' }),
+        fileInput = el('input', {
+          className: 'input',
+          attrs: { type: 'file', accept: 'image/jpeg,image/png,image/webp', multiple: '' },
+          listeners: {
+            change: (e) => {
+              const files = Array.from(e.target.files || []);
+              if (files.length > 3) { toast.error('Maks 3 file.'); e.target.value = ''; selectedFiles = []; return; }
+              selectedFiles = files;
+            },
+          },
+        }),
+      ]),
+
+      el('p', { className: 'text-xs text-muted', text: 'Admin akan review dispute dan mediasi. Kamu bisa chat dengan counterparty via dispute center.' }),
+    ]),
+    actions: [
+      { label: 'Batal', variant: 'secondary', onClick: (c) => c() },
+      {
+        label: 'Buka Dispute',
+        variant: 'primary',
+        onClick: async (c) => {
+          const reason = reasonInput.value.trim();
+          const description = descriptionInput.value.trim();
+          if (!reason) return toast.error('Alasan wajib diisi.');
+          if (description.length < 20) return toast.error('Deskripsi minimal 20 karakter.');
+
+          try {
+            // Upload evidence
+            const evidence = [];
+            const { uploadImageWithRetry } = await import('../../services/storageService.js');
+            for (const file of selectedFiles) {
+              const result = await uploadImageWithRetry(file, { folder: 'tokowarung/disputeEvidence' });
+              evidence.push({ url: result.secureUrl, publicId: result.publicId });
+            }
+
+            await createDispute({
+              initiatorId: user.uid,
+              type,
+              orderId: order.id,
+              counterpartyId,
+              reason,
+              description,
+              evidence,
+            });
+
+            toast.success('Dispute dibuka! Admin akan review.');
+            c();
+          } catch (err) {
+            console.error('[dispute] create error:', err);
+            toast.error(err.message || 'Gagal membuat dispute.');
+          }
+        },
+      },
+    ],
   });
 }

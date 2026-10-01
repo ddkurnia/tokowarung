@@ -30,6 +30,10 @@ const CourierOrderDetailPage = () => import('./courier/pages/order-detail.js');
 const CourierWalletPage = () => import('./courier/pages/wallet.js');
 const AdminDashboard = () => import('./admin/pages/dashboard.js');
 const AdminFinancePage = () => import('./admin/pages/finance.js');
+const AdminModerationPage = () => import('./admin/pages/moderation.js');
+const AdminReportsPage = () => import('./admin/pages/reports.js');
+const AdminDisputesPage = () => import('./admin/pages/disputes.js');
+const AdminIncidentsPage = () => import('./admin/pages/incidents.js');
 const NotFoundPage = () => import('./pages/not-found.js');
 
 // ----- Register routes -----
@@ -62,6 +66,10 @@ function registerAllRoutes() {
 
   // Admin (protected)
   registerRoute(ROUTE.ADMIN_DASHBOARD, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminDashboard);
+  registerRoute(ROUTE.ADMIN_PRODUCTS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminModerationPage);
+  registerRoute(ROUTE.ADMIN_REPORTS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminReportsPage);
+  registerRoute(ROUTE.ADMIN_DISPUTES, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminDisputesPage);
+  registerRoute(ROUTE.ADMIN_INCIDENTS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminIncidentsPage);
   registerRoute(ROUTE.ADMIN_FINANCE, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminFinancePage);
 
   // 404

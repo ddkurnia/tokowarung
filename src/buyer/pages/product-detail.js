@@ -8,6 +8,7 @@ import { toast, confirmDialog } from '../../components/feedback.js';
 import { getProductById } from '../../services/productService.js';
 import { addToCart } from '../../services/cartService.js';
 import { getImageUrl, getThumbUrl } from '../../services/storageService.js';
+import { showReportModal } from '../../components/reportModal.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah, haversineKm, estimateShipping } from '../../utils/helpers.js';
 
@@ -188,7 +189,23 @@ function renderProduct(page, product, { user, profile }) {
   // Report button
   page.appendChild(
     el('div', { className: 'container mt-6 text-center' }, [
-      el('button', { className: 'btn-link text-sm text-muted', text: 'Laporkan produk ini', onClick: () => toast.info('Form report akan tersedia segera.') }),
+      el('button', {
+        className: 'btn-link text-sm text-muted',
+        text: 'Laporkan produk ini',
+        onClick: () => {
+          if (!user) {
+            toast.error('Login dulu untuk melaporkan.');
+            navigate('/login?redirect=/produk/' + product.id);
+            return;
+          }
+          showReportModal({
+            user,
+            type: 'PRODUCT',
+            targetId: product.id,
+            targetName: product.name,
+          });
+        },
+      }),
     ])
   );
 }

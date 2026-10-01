@@ -156,13 +156,76 @@ export async function updateProduct(productId, sellerId, patch) {
 
 /**
  * Submit produk DRAFT ke review.
+ * AUTO-FLAGGING: cek name + description untuk prohibited keywords.
+ * Kalau ketemu, status = SUSPENDED (admin manual review) instead of PENDING_REVIEW.
  */
 export async function submitProductForReview(productId) {
+  // 1. Fetch product data dulu untuk auto-flagging check
+  const snap = await getDoc(doc(db, COLLECTION.PRODUCTS, productId));
+  if (!snap.exists()) throw new Error('Produk tidak ditemukan.');
+  const product = snap.data();
+  const name = (product.name || '').toLowerCase();
+  const description = (product.description || '').toLowerCase();
+  const tags = (product.tags || []).map((t) => String(t).toLowerCase());
+
+  // 2. Fetch prohibited keywords from settings
+  let prohibitedKeywords = [];
+  try {
+    const pkSnap = await getDoc(doc(db, COLLECTION.SETTINGS, 'prohibited-keywords'));
+    if (pkSnap.exists()) {
+      const kwStr = pkSnap.data().keywords || '';
+      prohibitedKeywords = kwStr.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+    }
+  } catch (err) {
+    console.warn('[productService] Failed to fetch prohibited keywords:', err);
+  }
+
+  // 3. Check jika ada keyword match
+  const matched = [];
+  for (const kw of prohibitedKeywords) {
+    if (kw.length < 3) continue; // skip short keywords (false positives)
+    if (name.includes(kw) || description.includes(kw) || tags.some((t) => t.includes(kw))) {
+      matched.push(kw);
+    }
+  }
+
+  if (matched.length > 0) {
+    // AUTO-FLAG: suspend product, require admin manual review
+    await updateDoc(doc(db, COLLECTION.PRODUCTS, productId), {
+      status: PRODUCT_STATUS.SUSPENDED,
+      suspensionReason: `Auto-flagged: matched prohibited keywords (${matched.join(', ')})`,
+      autoFlaggedAt: serverTimestamp(),
+      submittedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    throw new Error(`Produk mengandung kata terlarang: "${matched.join('", "')}". Hubungi admin untuk review manual.`);
+  }
+
+  // 4. Kalau aman, submit for normal review
   await updateDoc(doc(db, COLLECTION.PRODUCTS, productId), {
     status: PRODUCT_STATUS.PENDING_REVIEW,
     submittedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Admin: list products yang auto-flagged (status SUSPENDED dengan autoFlaggedAt).
+ */
+export async function listAutoFlaggedProducts(opts = {}) {
+  const { pageSize = 20 } = opts;
+  const q = query(
+    collection(db, COLLECTION.PRODUCTS),
+    where('status', '==', PRODUCT_STATUS.SUSPENDED),
+    orderBy('autoFlaggedAt', 'desc'),
+    limit(pageSize)
+  );
+  const snap = await getDocs(q);
+  return {
+    items: snap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    cursor: snap.docs[snap.docs.length - 1] || null,
+    hasMore: snap.size === pageSize,
+  };
 }
 
 /**
