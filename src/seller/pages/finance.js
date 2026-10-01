@@ -212,7 +212,8 @@ function renderSidebar() {
     { id: 'products', label: 'Produk', href: '#/seller/products', icon: '📦' },
     { id: 'orders', label: 'Pesanan', href: '#/seller/orders', icon: '📋' },
     { id: 'finance', label: 'Keuangan', href: '#/seller/finance', icon: '💰' },
-    { id: 'promos', label: 'Promosi', href: '#/seller/promos', icon: '🎯' },
+    { id: 'vouchers', label: 'Voucher', href: '#/seller/vouchers', icon: '🎟️' },
+    { id: 'ads', label: 'Iklan', href: '#/seller/ads', icon: '📢' },
     { id: 'settings', label: 'Pengaturan Toko', href: '#/seller/settings', icon: '⚙️' },
   ];
   const nav = el('aside', { className: 'dashboard__sidebar' });

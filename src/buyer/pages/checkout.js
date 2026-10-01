@@ -7,6 +7,7 @@ import { el, EmptyState, BuyerHeader, BuyerBottomNav } from '../../components/ui
 import { toast, confirmDialog } from '../../components/feedback.js';
 import { getCart, groupBySeller, calculateTotals } from '../../services/cartService.js';
 import { createOrder } from '../../services/orderService.js';
+import { validateVoucher, recordVoucherUsage } from '../../services/promotionService.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah } from '../../utils/helpers.js';
 import { PAYMENT_METHOD } from '../../utils/constants.js';
@@ -73,6 +74,9 @@ async function loadCheckout(container, user, profile) {
     const serviceFee = 1000;
     const shippingFee = 8000; // MVP flat; in Phase 3 compute via distance
     const total = grandSubtotal + serviceFee + shippingFee;
+
+    // Phase 5.5: Voucher state — mutable saat buyer apply voucher
+    let voucherState = { code: '', discount: 0, freeShipping: false, voucherId: null, description: '' };
 
     let selectedPayment = PAYMENT_METHOD.COD;
 
@@ -174,8 +178,17 @@ async function loadCheckout(container, user, profile) {
 
     // ----- RIGHT: order summary (sticky) -----
     const summaryCol = el('div', { className: 'checkout-summary-col' });
-    summaryCol.appendChild(
-      el('div', { className: 'card card-elevated checkout-summary' }, [
+    summaryCol.appendChild(renderSummarySection());
+
+    function computeFinalTotal() {
+      const effectiveShipping = voucherState.freeShipping ? 0 : shippingFee;
+      return grandSubtotal + serviceFee + effectiveShipping - voucherState.discount;
+    }
+
+    function renderSummarySection() {
+      const finalTotal = computeFinalTotal();
+      const effectiveShipping = voucherState.freeShipping ? 0 : shippingFee;
+      return el('div', { className: 'card card-elevated checkout-summary' }, [
         el('h2', { className: 'mb-4', text: 'Ringkasan Pembayaran' }),
         el('div', { className: 'summary-row' }, [
           el('span', { className: 'text-sm text-muted', text: 'Subtotal produk' }),
@@ -186,14 +199,70 @@ async function loadCheckout(container, user, profile) {
           el('span', { className: 'fw-600', text: formatRupiah(serviceFee) }),
         ]),
         el('div', { className: 'summary-row' }, [
-          el('span', { className: 'text-sm text-muted', text: 'Ongkir (estimasi)' }),
-          el('span', { className: 'fw-600', text: formatRupiah(shippingFee) }),
+          el('span', { className: 'text-sm text-muted', text: voucherState.freeShipping ? 'Ongkir (FREE 🎉)' : 'Ongkir (estimasi)' }),
+          el('span', { className: 'fw-600 ' + (voucherState.freeShipping ? 'text-success' : ''), text: voucherState.freeShipping ? formatRupiah(0) : formatRupiah(shippingFee) }),
         ]),
+        voucherState.discount > 0
+          ? el('div', { className: 'summary-row' }, [
+              el('span', { className: 'text-sm text-success', text: `Voucher ${voucherState.code}` }),
+              el('span', { className: 'fw-600 text-success', text: '-' + formatRupiah(voucherState.discount) }),
+            ])
+          : null,
         el('div', { className: 'summary-divider' }),
         el('div', { className: 'summary-row summary-row--total' }, [
           el('span', { text: 'Total Bayar' }),
-          el('span', { className: 'fw-800 text-xl text-success', text: formatRupiah(total) }),
+          el('span', { className: 'fw-800 text-xl text-success', text: formatRupiah(finalTotal) }),
         ]),
+        // Voucher input
+        el('div', { className: 'voucher-input-row mt-4' }, [
+          el('input', {
+            className: 'input',
+            id: 'voucherInput',
+            attrs: { type: 'text', placeholder: 'Kode voucher (cth: HEMAT50)', autocomplete: 'off' },
+          }),
+          el('button', {
+            className: 'btn btn-secondary',
+            text: 'Apply',
+            onClick: async () => {
+              const code = container.querySelector('#voucherInput').value.trim();
+              if (!code) {
+                toast.error('Masukkan kode voucher dulu.');
+                return;
+              }
+              try {
+                // Use first seller for scope check (kalau voucher scope-specific)
+                const firstSellerId = sellerGroups[0]?.sellerId;
+                const result = await validateVoucher(code, user.uid, grandSubtotal, shippingFee, firstSellerId);
+                voucherState = {
+                  code: result.code,
+                  discount: result.discountAmount,
+                  freeShipping: result.freeShipping,
+                  voucherId: result.voucherId,
+                  description: result.description || '',
+                };
+                toast.success(`Voucher "${result.code}" diterapkan! ${result.freeShipping ? 'Free shipping!' : 'Diskon ' + formatRupiah(result.discountAmount)}`);
+                reRenderSummary();
+              } catch (err) {
+                console.error('[voucher] apply error:', err);
+                toast.error(err.message || 'Voucher tidak valid.');
+                voucherState = { code: '', discount: 0, freeShipping: false, voucherId: null, description: '' };
+                reRenderSummary();
+              }
+            },
+          }),
+        ]),
+        voucherState.voucherId
+          ? el('button', {
+              className: 'btn-link text-xs text-muted mt-2',
+              text: 'Hapus voucher',
+              onClick: () => {
+                voucherState = { code: '', discount: 0, freeShipping: false, voucherId: null, description: '' };
+                container.querySelector('#voucherInput').value = '';
+                toast.info('Voucher dihapus.');
+                reRenderSummary();
+              },
+            })
+          : null,
         el('button', {
           className: 'btn btn-primary btn-block btn-lg mt-4',
           id: 'placeOrderBtn',
@@ -202,9 +271,10 @@ async function loadCheckout(container, user, profile) {
             user,
             profile,
             sellerGroups,
-            shippingFee,
+            shippingFee: voucherState.freeShipping ? 0 : shippingFee,
             serviceFee,
-            total,
+            total: computeFinalTotal(),
+            voucher: voucherState.voucherId ? voucherState : null,
             getFormData: () => ({
               name: container.querySelector('#name').value.trim(),
               phone: container.querySelector('#phone').value.trim(),
@@ -216,9 +286,15 @@ async function loadCheckout(container, user, profile) {
           }),
         }),
         el('p', { className: 'text-xs text-muted text-center mt-3', text: 'Dengan klik "Buat Pesanan", kamu menyetujui Ketentuan Layanan TokoWarung.' }),
-      ])
-    );
+      ]);
+    }
+
     layout.appendChild(summaryCol);
+
+    function reRenderSummary() {
+      const oldCard = summaryCol.querySelector('.checkout-summary');
+      if (oldCard) oldCard.replaceWith(renderSummarySection());
+    }
 
     container.appendChild(layout);
   } catch (err) {
@@ -241,7 +317,7 @@ async function loadCheckout(container, user, profile) {
   }
 }
 
-async function handlePlaceOrder({ user, profile, sellerGroups, shippingFee, serviceFee, total, getFormData, paymentMethod, content }) {
+async function handlePlaceOrder({ user, profile, sellerGroups, shippingFee, serviceFee, total, voucher, getFormData, paymentMethod, content }) {
   const { name, phone, address, note } = getFormData();
 
   // Validate
@@ -271,6 +347,15 @@ async function handlePlaceOrder({ user, profile, sellerGroups, shippingFee, serv
         image: typeof it.image === 'string' ? it.image : it.image?.url || '',
       }));
 
+      // Phase 5.5: pass voucher discount if applied
+      const sellerSubtotal = group.items.reduce((s, it) => s + it.price * it.qty, 0);
+      let perOrderDiscount = 0;
+      if (voucher && voucher.voucherId) {
+        // Distribute voucher discount proportionally per seller
+        const totalSubtotal = sellerGroups.reduce((s, g) => s + g.items.reduce((ss, it) => ss + it.price * it.qty, 0), 0);
+        perOrderDiscount = Math.round((voucher.discount * sellerSubtotal) / totalSubtotal);
+      }
+
       const { orderId } = await createOrder({
         buyerId: user.uid,
         sellerId: group.sellerId,
@@ -278,7 +363,7 @@ async function handlePlaceOrder({ user, profile, sellerGroups, shippingFee, serv
         shippingAddress,
         shippingFee: perSellerShipping,
         serviceFee: Math.round(serviceFee / sellerGroups.length),
-        discount: 0,
+        discount: perOrderDiscount,
         paymentMethod,
       });
 
@@ -286,11 +371,21 @@ async function handlePlaceOrder({ user, profile, sellerGroups, shippingFee, serv
       lastOrderId = orderId;
     }
 
+    // Phase 5.5: Record voucher usage (after all orders created successfully)
+    if (voucher && voucher.voucherId) {
+      try {
+        await recordVoucherUsage(voucher.voucherId, user.uid, lastOrderId, voucher.discount);
+      } catch (err) {
+        console.warn('[checkout] Failed to record voucher usage:', err);
+        // Don't fail order if voucher tracking fails
+      }
+    }
+
     // Clear cart after successful order creation
     const { clearCart } = await import('../../services/cartService.js');
     await clearCart(user);
 
-    toast.success(`${orderIds.length} pesanan berhasil dibuat!`);
+    toast.success(`${orderIds.length} pesanan berhasil dibuat!` + (voucher ? ` Voucher ${voucher.code} diterapkan!` : ''));
 
     // Navigate to success page with first order id
     navigate('/checkout/success/' + lastOrderId, { orders: orderIds.join(',') });

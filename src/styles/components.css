@@ -1924,3 +1924,234 @@
   color: var(--color-info);
 }
 
+
+/* ----- VOUCHER & AD CARDS (Phase 5.5) ----- */
+.voucher-card, .ad-card {
+  padding: var(--space-4);
+}
+
+.voucher-input-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.voucher-input-row .input {
+  flex: 1;
+}
+
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+.chat-header {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.chat-messages {
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.chat-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+  align-self: flex-start;
+}
+
+.chat-message.is-me {
+  align-self: flex-end;
+}
+
+.chat-message__bubble {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-xs);
+}
+
+.chat-message.is-me .chat-message__bubble {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.chat-message__text {
+  font-size: var(--fs-sm);
+  word-wrap: break-word;
+}
+
+.chat-message__time {
+  font-size: 10px;
+  color: var(--color-muted);
+  margin-top: 4px;
+}
+
+.chat-message.is-me .chat-message__time {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.chat-input-bar {
+  display: flex;
+  gap: var(--space-2);
+  position: sticky;
+  bottom: 0;
+  background: var(--color-bg);
+  padding: var(--space-3) 0;
+}
+
+.chat-input {
+  flex: 1;
+}
+
+.chat-empty {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+/* ----- NOTIFICATIONS ----- */
+.notification-item {
+  cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  transition: background var(--ease-fast) var(--ease);
+}
+
+.notification-item:hover {
+  background: var(--color-surface-2);
+}
+
+.notification-item.is-unread {
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-primary-tint);
+}
+
+.notification-item__icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.notification-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item__dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ----- CHATS LIST ----- */
+.chat-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  cursor: pointer;
+  transition: background var(--ease-fast) var(--ease);
+}
+
+.chat-list-item:hover {
+  background: var(--color-surface-2);
+}
+
+.chat-list-item.is-unread {
+  border-left: 3px solid var(--color-primary);
+}
+
+.chat-list-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ----- REVIEWS SECTION (Phase 5) ----- */
+.rating-summary {
+  display: inline-block;
+}
+
+.rating-summary__average {
+  font-size: var(--space-8);
+  font-weight: 800;
+  color: var(--color-warning);
+}
+
+.rating-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rating-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+}
+
+.rating-bar__track {
+  height: 6px;
+  background: var(--color-surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.rating-bar__fill {
+  height: 100%;
+  background: var(--color-warning);
+  border-radius: 3px;
+  transition: width var(--ease-slow) var(--ease);
+}
+
+.review-item {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+/* ----- STAR INPUT (Phase 5) ----- */
+.star-input {
+  display: flex;
+  gap: var(--space-2);
+  font-size: 36px;
+  line-height: 1;
+}
+
+.star-input__star {
+  background: none;
+  border: none;
+  color: var(--color-surface-3);
+  cursor: pointer;
+  padding: 0;
+  font-size: 36px;
+  transition: color var(--ease-fast) var(--ease), transform 100ms var(--ease);
+}
+
+.star-input__star:hover {
+  transform: scale(1.15);
+}
+
+.star-input__star.is-active {
+  color: var(--color-warning);
+}
