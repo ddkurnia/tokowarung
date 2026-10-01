@@ -29,6 +29,8 @@ const SellerOrderDetailPage = () => import('./seller/pages/order-detail.js');
 const SellerFinancePage = () => import('./seller/pages/finance.js');
 const SellerVouchersPage = () => import('./seller/pages/vouchers.js');
 const SellerAdsPage = () => import('./seller/pages/ads.js');
+const SellerAnalyticsPage = () => import('./seller/pages/analytics.js');
+const SellerPOSPage = () => import('./seller/pages/pos.js');
 const CourierDashboard = () => import('./courier/pages/dashboard.js');
 const CourierOrdersPage = () => import('./courier/pages/orders.js');
 const CourierOrderDetailPage = () => import('./courier/pages/order-detail.js');
@@ -39,6 +41,8 @@ const AdminModerationPage = () => import('./admin/pages/moderation.js');
 const AdminReportsPage = () => import('./admin/pages/reports.js');
 const AdminDisputesPage = () => import('./admin/pages/disputes.js');
 const AdminIncidentsPage = () => import('./admin/pages/incidents.js');
+const AdminAnalyticsPage = () => import('./admin/pages/analytics.js');
+const AdminFraudPage = () => import('./admin/pages/fraud.js');
 const AdminAdsPage = () => import('./admin/pages/ads.js');
 const NotFoundPage = () => import('./pages/not-found.js');
 
@@ -68,6 +72,8 @@ function registerAllRoutes() {
   registerRoute(ROUTE.SELLER_FINANCE, [ROLE.SELLER], SellerFinancePage);
   registerRoute(ROUTE.SELLER_VOUCHERS, [ROLE.SELLER], SellerVouchersPage);
   registerRoute(ROUTE.SELLER_ADS, [ROLE.SELLER], SellerAdsPage);
+  registerRoute(ROUTE.SELLER_ANALYTICS, [ROLE.SELLER], SellerAnalyticsPage);
+  registerRoute(ROUTE.SELLER_POS, [ROLE.SELLER], SellerPOSPage);
 
   // Courier (protected)
   registerRoute(ROUTE.COURIER_DASHBOARD, [ROLE.COURIER], CourierDashboard);
@@ -81,6 +87,8 @@ function registerAllRoutes() {
   registerRoute(ROUTE.ADMIN_REPORTS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminReportsPage);
   registerRoute(ROUTE.ADMIN_DISPUTES, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminDisputesPage);
   registerRoute(ROUTE.ADMIN_INCIDENTS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminIncidentsPage);
+  registerRoute(ROUTE.ADMIN_ANALYTICS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminAnalyticsPage);
+  registerRoute(ROUTE.ADMIN_FRAUD, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminFraudPage);
   registerRoute(ROUTE.ADMIN_ADS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminAdsPage);
   registerRoute(ROUTE.ADMIN_FINANCE, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminFinancePage);
 

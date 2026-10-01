@@ -255,6 +255,8 @@ export const ROUTE = Object.freeze({
   SELLER_FINANCE: '/seller/finance',
   SELLER_VOUCHERS: '/seller/vouchers',
   SELLER_ADS: '/seller/ads',
+  SELLER_ANALYTICS: '/seller/analytics',
+  SELLER_POS: '/seller/pos',
   SELLER_SETTINGS: '/seller/settings',
 
   // Courier
@@ -272,6 +274,8 @@ export const ROUTE = Object.freeze({
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_DISPUTES: '/admin/disputes',
   ADMIN_INCIDENTS: '/admin/incidents',
+  ADMIN_ANALYTICS: '/admin/analytics',
+  ADMIN_FRAUD: '/admin/fraud',
   ADMIN_ADS: '/admin/ads',
   ADMIN_FINANCE: '/admin/finance',
   ADMIN_SETTINGS: '/admin/settings',

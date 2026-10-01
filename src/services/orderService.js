@@ -233,16 +233,27 @@ export async function cancelOrder(orderId, actorId) {
 
 /**
  * Auto-assign courier saat order status = READY_FOR_PICKUP.
- * Client-side fallback (no Cloud Function — proper solution needs Blaze plan).
- * Logic: cari courier ONLINE_AVAILABLE di zone yang sama (or any online courier).
- * Set order.courierId, status = COURIER_ASSIGNED.
- * Generate pickupCode untuk verifikasi.
+ * Phase 6: pakai smartAssignCourier (ranking by distance + load + rating).
+ * Fallback ke simple assign kalau smart dispatch error (e.g., no seller location).
  *
  * @param {string} orderId
  * @param {string} sellerId - untuk audit log
  * @returns {Promise<{courierId: string, pickupCode: string}>}
  */
 export async function autoAssignCourier(orderId, sellerId) {
+  try {
+    const { smartAssignCourier } = await import('./dispatchService.js');
+    return await smartAssignCourier(orderId, sellerId);
+  } catch (err) {
+    console.warn('[orderService] Smart dispatch failed, falling back to simple assign:', err.message);
+    return await simpleAssignCourier(orderId, sellerId);
+  }
+}
+
+/**
+ * Simple assign courier (fallback): pick first online courier without ranking.
+ */
+async function simpleAssignCourier(orderId, sellerId) {
   const orderRef = doc(db, COLLECTION.ORDERS, orderId);
   const orderSnap = await getDoc(orderRef);
   if (!orderSnap.exists()) throw new Error('Order tidak ditemukan.');
@@ -285,7 +296,7 @@ export async function autoAssignCourier(orderId, sellerId) {
       from: 'READY_FOR_PICKUP',
       to: 'COURIER_ASSIGNED',
       actorId: sellerId,
-      note: `Auto-assigned courier ${courierId.slice(0, 8)}... Pickup code generated`,
+      note: `Simple-assigned courier ${courierId.slice(0, 8)}... (smart dispatch fallback)`,
       at: new Date().toISOString(),
     }),
   });

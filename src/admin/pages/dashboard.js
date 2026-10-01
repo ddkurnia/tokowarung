@@ -11,6 +11,7 @@ import { formatRupiah, formatCompact } from '../../utils/helpers.js';
 
 const ADMIN_NAV = [
   { id: 'overview', label: 'Overview', href: '#/admin', icon: '📊' },
+  { id: 'analytics', label: 'Analytics', href: '#/admin/analytics', icon: '📈' },
   { id: 'orders', label: 'Orders', href: '#/admin/orders', icon: '📦' },
   { id: 'users', label: 'Users', href: '#/admin/users', icon: '👥' },
   { id: 'products', label: 'Products (Moderation)', href: '#/admin/products', icon: '🛡️' },
@@ -20,6 +21,8 @@ const ADMIN_NAV = [
   { id: 'reports', label: 'Reports', href: '#/admin/reports', icon: '🚨' },
   { id: 'disputes', label: 'Disputes', href: '#/admin/disputes', icon: '⚖️' },
   { id: 'incidents', label: 'Incidents', href: '#/admin/incidents', icon: '⚠️' },
+  { id: 'fraud', label: 'Fraud', href: '#/admin/fraud', icon: '🔍' },
+  { id: 'ads', label: 'Ads', href: '#/admin/ads', icon: '📢' },
   { id: 'audit', label: 'Audit Logs', href: '#/admin/audit', icon: '📜' },
   { id: 'settings', label: 'Settings', href: '#/admin/settings', icon: '⚙️' },
 ];
