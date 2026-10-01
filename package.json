@@ -19,7 +19,8 @@
     "deploy:vercel": "vercel --prod"
   },
   "dependencies": {
-    "firebase": "^10.12.2"
+    "firebase": "^10.12.2",
+    "leaflet": "^1.9.4"
   },
   "devDependencies": {
     "vite": "^5.3.1"

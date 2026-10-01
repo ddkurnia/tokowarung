@@ -42,6 +42,7 @@ const AdminReportsPage = () => import('./admin/pages/reports.js');
 const AdminDisputesPage = () => import('./admin/pages/disputes.js');
 const AdminIncidentsPage = () => import('./admin/pages/incidents.js');
 const AdminAnalyticsPage = () => import('./admin/pages/analytics.js');
+const AdminMapPage = () => import('./admin/pages/map.js');
 const AdminFraudPage = () => import('./admin/pages/fraud.js');
 const AdminAdsPage = () => import('./admin/pages/ads.js');
 const NotFoundPage = () => import('./pages/not-found.js');
@@ -88,6 +89,7 @@ function registerAllRoutes() {
   registerRoute(ROUTE.ADMIN_DISPUTES, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminDisputesPage);
   registerRoute(ROUTE.ADMIN_INCIDENTS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminIncidentsPage);
   registerRoute(ROUTE.ADMIN_ANALYTICS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminAnalyticsPage);
+  registerRoute(ROUTE.ADMIN_MAP, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminMapPage);
   registerRoute(ROUTE.ADMIN_FRAUD, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminFraudPage);
   registerRoute(ROUTE.ADMIN_ADS, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminAdsPage);
   registerRoute(ROUTE.ADMIN_FINANCE, [ROLE.ADMIN, ROLE.SUPER_ADMIN], AdminFinancePage);

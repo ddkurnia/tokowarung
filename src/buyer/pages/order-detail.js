@@ -11,6 +11,8 @@ import { createDispute } from '../../services/disputeService.js';
 import { getOrCreateConversation } from '../../services/chatService.js';
 import { showReportModal } from '../../components/reportModal.js';
 import { showReviewModal } from '../../components/reviewModal.js';
+import { createMap, updateMapMarker } from '../../components/map.js';
+import { subscribeToCourierLocation } from '../../services/trackingService.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah, formatDate } from '../../utils/helpers.js';
 import { ORDER_STATUS, PAYMENT_METHOD } from '../../utils/constants.js';
@@ -157,6 +159,56 @@ async function loadOrder(container, orderId, user) {
           ]),
         ])
       );
+    }
+
+    // Live tracking map (during DELIVERING / ARRIVED)
+    if (order.courierId && [ORDER_STATUS.COURIER_GOING_TO_PICKUP, ORDER_STATUS.PICKED_UP, ORDER_STATUS.DELIVERING, ORDER_STATUS.ARRIVED].includes(order.orderStatus)) {
+      const mapSection = el('div', { className: 'card mt-4' });
+      mapSection.appendChild(el('h2', { className: 'mb-4', text: '📍 Live Tracking Kurir' }));
+      const mapDiv = el('div', { id: 'courierMap' });
+      mapSection.appendChild(mapDiv);
+      container.appendChild(mapSection);
+
+      // Create map & subscribe to courier location
+      (async () => {
+        const mapContainer = await createMap({
+          lat: order.shippingAddress?.location?.lat || -6.2,
+          lng: order.shippingAddress?.location?.lng || 106.8,
+          zoom: 14,
+          height: 350,
+          markers: [{
+            lat: order.shippingAddress?.location?.lat || -6.2,
+            lng: order.shippingAddress?.location?.lng || 106.8,
+            popup: '📍 Tujuan (Alamat kamu)',
+            label: 'Tujuan',
+          }],
+        });
+        mapDiv.appendChild(mapContainer);
+
+        // Subscribe to courier location realtime
+        const unsub = subscribeToCourierLocation(order.courierId, (courierData) => {
+          if (!courierData?.location) return;
+          // Add or update courier marker
+          if (mapContainer._markers.length > 1) {
+            // Update existing courier marker
+            updateMapMarker(mapContainer, 1, courierData.location.lat, courierData.location.lng);
+          } else {
+            // Add courier marker
+            import('../../components/map.js').then(({ addMapMarker }) => {
+              addMapMarker(mapContainer, courierData.location.lat, courierData.location.lng, `🛵 ${courierData.fullName || 'Kurir'} (${courierData.vehicleType || 'motor'})`, 'Kurir');
+            });
+          }
+        });
+
+        // Cleanup on navigate
+        const observer = new MutationObserver(() => {
+          if (!document.body.contains(mapDiv)) {
+            unsub();
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      })();
     }
 
     // Actions based on status

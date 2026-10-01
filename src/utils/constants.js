@@ -275,6 +275,7 @@ export const ROUTE = Object.freeze({
   ADMIN_DISPUTES: '/admin/disputes',
   ADMIN_INCIDENTS: '/admin/incidents',
   ADMIN_ANALYTICS: '/admin/analytics',
+  ADMIN_MAP: '/admin/map',
   ADMIN_FRAUD: '/admin/fraud',
   ADMIN_ADS: '/admin/ads',
   ADMIN_FINANCE: '/admin/finance',
