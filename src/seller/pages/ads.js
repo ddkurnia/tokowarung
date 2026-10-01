@@ -5,7 +5,8 @@
 import { el, EmptyState } from '../../components/ui.js';
 import { toast, showModal } from '../../components/feedback.js';
 import { logout } from '../../auth/authService.js';
-import { listSellerCampaigns, createCampaign, toggleCampaignPause, listSellerProducts } from '../../services/adsService.js';
+import { listSellerCampaigns, createCampaign, toggleCampaignPause } from '../../services/adsService.js';
+import { listSellerProducts } from '../../services/sellerDashboardService.js';
 import { navigate } from '../../router/router.js';
 import { ROLE } from '../../utils/constants.js';
 import { formatRupiah, formatDate } from '../../utils/helpers.js';
