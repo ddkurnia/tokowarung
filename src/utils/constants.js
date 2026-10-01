@@ -243,6 +243,8 @@ export const ROUTE = Object.freeze({
   BUYER_WISHLIST: '/wishlist',
   BUYER_PROFILE: '/profile',
   BUYER_NOTIFICATIONS: '/notifications',
+  BUYER_CHATS: '/chats',
+  BUYER_CHAT_DETAIL: '/chats/:id',
 
   // Seller
   SELLER_DASHBOARD: '/seller',

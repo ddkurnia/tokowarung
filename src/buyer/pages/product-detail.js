@@ -9,8 +9,9 @@ import { getProductById } from '../../services/productService.js';
 import { addToCart } from '../../services/cartService.js';
 import { getImageUrl, getThumbUrl } from '../../services/storageService.js';
 import { showReportModal } from '../../components/reportModal.js';
+import { getProductReviews, getRatingSummary } from '../../services/reviewService.js';
 import { navigate } from '../../router/router.js';
-import { formatRupiah, haversineKm, estimateShipping } from '../../utils/helpers.js';
+import { formatRupiah, haversineKm, estimateShipping, formatRelativeTime } from '../../utils/helpers.js';
 
 export default async function ProductDetailPage({ params, user, profile }) {
   const { id } = params;
@@ -186,6 +187,9 @@ function renderProduct(page, product, { user, profile }) {
   );
   page.appendChild(actionbar);
 
+  // Reviews section
+  page.appendChild(renderReviewsSection(product.id));
+
   // Report button
   page.appendChild(
     el('div', { className: 'container mt-6 text-center' }, [
@@ -235,5 +239,87 @@ async function handleAddToCart(product, user, profile, buyNow) {
   } catch (err) {
     console.error('[product] addToCart error:', err);
     toast.error('Gagal menambahkan ke keranjang. Coba lagi.');
+  }
+}
+
+// ============================================
+// REVIEWS SECTION (Phase 5)
+// ============================================
+
+function renderReviewsSection(productId) {
+  const section = el('div', { className: 'container mt-6' });
+  section.appendChild(SectionHeader({ title: 'Ulasan Produk' }));
+
+  const content = el('div', { className: 'reviews-content' });
+  content.appendChild(el('div', { className: 'skeleton skeleton-block' }));
+  section.appendChild(content);
+
+  loadReviews(content, productId);
+
+  return section;
+}
+
+async function loadReviews(container, productId) {
+  try {
+    const [reviewsResult, summary] = await Promise.all([
+      getProductReviews(productId, { pageSize: 10 }),
+      getRatingSummary('PRODUCT', productId),
+    ]);
+
+    container.replaceChildren();
+
+    // Rating summary card
+    container.appendChild(
+      el('div', { className: 'card mb-4' }, [
+        el('div', { className: 'row gap-6 align-center' }, [
+          el('div', { className: 'rating-summary text-center' }, [
+            el('p', { className: 'rating-summary__average', text: summary.average.toFixed(1) }),
+            StarRating({ value: summary.average, size: 20 }),
+            el('p', { className: 'text-xs text-muted mt-1', text: `${summary.total} ulasan` }),
+          ]),
+          el('div', { className: 'rating-distribution', style: { flex: '1' } }, [5, 4, 3, 2, 1].map((star) => {
+            const count = summary.distribution[star] || 0;
+            const pct = summary.total > 0 ? (count / summary.total) * 100 : 0;
+            return el('div', { className: 'rating-bar row gap-2' }, [
+              el('span', { className: 'text-xs', text: `${star}★` }),
+              el('div', { className: 'rating-bar__track', style: { flex: '1' } }, [
+                el('div', { className: 'rating-bar__fill', style: { width: pct + '%' } }),
+              ]),
+              el('span', { className: 'text-xs text-muted', text: String(count) }),
+            ]);
+          })),
+        ]),
+      ])
+    );
+
+    // Individual reviews
+    if (reviewsResult.items.length === 0) {
+      container.appendChild(
+        EmptyState({ icon: '⭐', title: 'Belum ada ulasan', desc: 'Jadilah yang pertama memberi rating setelah beli produk ini.' })
+      );
+      return;
+    }
+
+    reviewsResult.items.forEach((r) => {
+      container.appendChild(
+        el('div', { className: 'card review-item' }, [
+          el('div', { className: 'row-between mb-2' }, [
+            StarRating({ value: r.rating, size: 16 }),
+            el('span', { className: 'text-xs text-muted', text: formatRelativeTime(r.createdAt) }),
+          ]),
+          r.comment ? el('p', { className: 'text-sm', text: r.comment }) : null,
+          el('p', { className: 'text-xs text-muted mt-2', text: 'Order #' + (r.orderId || '').slice(-8).toUpperCase() }),
+        ])
+      );
+    });
+
+    if (reviewsResult.hasMore) {
+      container.appendChild(
+        el('button', { className: 'btn btn-secondary btn-block mt-2', text: 'Lihat Semua Ulasan', onClick: () => toast.info('Halaman semua ulasan akan tersedia segera.') })
+      );
+    }
+  } catch (err) {
+    console.error('[product reviews] load error:', err);
+    container.replaceChildren(EmptyState({ icon: '⚠️', title: 'Gagal memuat ulasan' }));
   }
 }

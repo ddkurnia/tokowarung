@@ -20,6 +20,9 @@ const OrderSuccessPage = () => import('./buyer/pages/order-success.js');
 const BuyerOrdersPage = () => import('./buyer/pages/orders.js');
 const BuyerOrderDetailPage = () => import('./buyer/pages/order-detail.js');
 const ProfilePage = () => import('./buyer/pages/profile.js');
+const NotificationsPage = () => import('./buyer/pages/notifications.js');
+const ChatsPage = () => import('./buyer/pages/chats.js');
+const ChatDetailPage = () => import('./buyer/pages/chat.js');
 const SellerDashboard = () => import('./seller/pages/dashboard.js');
 const SellerOrdersPage = () => import('./seller/pages/orders.js');
 const SellerOrderDetailPage = () => import('./seller/pages/order-detail.js');
@@ -51,6 +54,9 @@ function registerAllRoutes() {
   registerRoute(ROUTE.BUYER_ORDERS, null, BuyerOrdersPage);
   registerRoute(ROUTE.BUYER_ORDER_DETAIL, null, BuyerOrderDetailPage);
   registerRoute(ROUTE.BUYER_PROFILE, null, ProfilePage);
+  registerRoute(ROUTE.BUYER_NOTIFICATIONS, null, NotificationsPage);
+  registerRoute(ROUTE.BUYER_CHATS, null, ChatsPage);
+  registerRoute(ROUTE.BUYER_CHAT_DETAIL, null, ChatDetailPage);
 
   // Seller (protected)
   registerRoute(ROUTE.SELLER_DASHBOARD, [ROLE.SELLER], SellerDashboard);

@@ -290,6 +290,7 @@ export async function autoAssignCourier(orderId, sellerId) {
     }),
   });
 
+  await notifyOrderStatusChange({ ...order, id: orderId, orderStatus: "COURIER_ASSIGNED" }, "COURIER_ASSIGNED", sellerId).catch(e => console.warn(e));
   return { courierId, pickupCode };
 }
 
@@ -313,7 +314,7 @@ export async function courierAcceptOrder(orderId, courierId) {
       from: 'COURIER_ASSIGNED',
       to: 'COURIER_GOING_TO_PICKUP',
       actorId: courierId,
-      note: 'Courier accepted, going to pickup',
+      note: "Courier accepted, going to pickup",
       at: new Date().toISOString(),
     }),
   });
@@ -379,7 +380,7 @@ export async function verifyPickupCode(orderId, courierId, code) {
       from: order.orderStatus,
       to: 'PICKED_UP',
       actorId: courierId,
-      note: 'Pickup verified, delivery OTP generated',
+      note: "Pickup verified, delivery OTP generated",
       at: new Date().toISOString(),
     }),
   });
@@ -431,7 +432,7 @@ export async function markArrived(orderId, courierId) {
       from: 'DELIVERING',
       to: 'ARRIVED',
       actorId: courierId,
-      note: 'Courier arrived at customer',
+      note: "Courier arrived at customer",
       at: new Date().toISOString(),
     }),
   });
@@ -474,10 +475,121 @@ export async function verifyDeliveryOtp(orderId, buyerId, otp) {
     const { settleWalletOnDelivery } = await import('./walletService.js');
     const updatedOrder = { ...order, id: orderId, orderStatus: 'DELIVERED' };
     await settleWalletOnDelivery(updatedOrder, 3); // 3% commission default
+    // Phase 5: Notify buyer (rating reminder) + seller + courier (commission earned)
+    await notifyOrderStatusChange(updatedOrder, 'DELIVERED', buyerId);
   } catch (err) {
-    console.error('[orderService] Failed to auto-settle wallet:', err);
+    console.error('[orderService] Failed to auto-settle wallet + notify:', err);
     // Don't fail the whole operation if wallet update fails — admin can fix manually
   }
 
   return { success: true };
 }
+
+// ============================================
+// NOTIFICATION TRIGGERS (Phase 5)
+// ============================================
+// Saat order status berubah, kirim notifikasi ke relevant parties.
+// Catatan: seharusnya via Cloud Function untuk proper trigger,
+// tapi untuk MVP tanpa Blaze, kita trigger dari client.
+// ============================================
+
+const STATUS_NOTIF_CONFIG = {
+  PAID: {
+    title: '💳 Pembayaran Diterima',
+    body: (orderId) => `Order #${orderId.slice(-8)} sudah dibayar. Tunggu konfirmasi seller.`,
+    recipients: ['sellerId'],
+    type: 'PAYMENT',
+  },
+  SELLER_CONFIRMED: {
+    title: '✓ Pesanan Dikonfirmasi',
+    body: (orderId) => `Order #${orderId.slice(-8)} dikonfirmasi seller. Sedang disiapkan.`,
+    recipients: ['buyerId'],
+    type: 'ORDER',
+  },
+  PREPARING: {
+    title: '📦 Sedang Disiapkan',
+    body: (orderId) => `Order #${orderId.slice(-8)} sedang disiapkan seller.`,
+    recipients: ['buyerId'],
+    type: 'ORDER',
+  },
+  READY_FOR_PICKUP: {
+    title: '🛍️ Siap Diambil Kurir',
+    body: (orderId) => `Order #${orderId.slice(-8)} siap diambil.`,
+    recipients: ['buyerId'],
+    type: 'ORDER',
+  },
+  COURIER_ASSIGNED: {
+    title: '🛵 Kurir Ditugaskan',
+    body: (orderId) => `Kurir ditugaskan untuk order #${orderId.slice(-8)}.`,
+    recipients: ['buyerId', 'courierId'],
+    type: 'DELIVERY',
+  },
+  PICKED_UP: {
+    title: '📦 Sudah Diambil Kurir',
+    body: (orderId) => `Order #${orderId.slice(-8)} sudah diambil kurir. Sedang dalam perjalanan.`,
+    recipients: ['buyerId'],
+    type: 'DELIVERY',
+  },
+  DELIVERING: {
+    title: '🛵 Sedang Dikirim',
+    body: (orderId) => `Order #${orderId.slice(-8)} sedang dalam perjalanan ke kamu.`,
+    recipients: ['buyerId'],
+    type: 'DELIVERY',
+  },
+  ARRIVED: {
+    title: '📍 Kurir Sampai',
+    body: (orderId) => `Kurir sampai di tujuan untuk order #${orderId.slice(-8)}. Berikan OTP untuk konfirmasi.`,
+    recipients: ['buyerId'],
+    type: 'DELIVERY',
+  },
+  DELIVERED: {
+    title: '✓ Pesanan Selesai',
+    body: (orderId) => `Order #${orderId.slice(-8)} selesai. Beri rating ke seller & kurir.`,
+    recipients: ['buyerId', 'sellerId', 'courierId'],
+    type: 'ORDER',
+  },
+  CANCELLED: {
+    title: '✕ Pesanan Dibatalkan',
+    body: (orderId) => `Order #${orderId.slice(-8)} dibatalkan.`,
+    recipients: ['buyerId', 'sellerId', 'courierId'],
+    type: 'ORDER',
+  },
+};
+
+/**
+ * Trigger notifications to relevant parties saat order status change.
+ * @param {object} order - order data (with buyerId, sellerId, courierId)
+ * @param {string} newStatus - new order status
+ * @param {string} actorId - uid yang trigger change (skip notif ke dirinya sendiri)
+ */
+export async function notifyOrderStatusChange(order, newStatus, actorId) {
+  const config = STATUS_NOTIF_CONFIG[newStatus];
+  if (!config) return;
+
+  const recipients = new Set();
+  config.recipients.forEach((key) => {
+    const id = order[key];
+    if (id && id !== actorId) recipients.add(id);
+  });
+
+  if (recipients.size === 0) return;
+
+  const notifPromises = [];
+  for (const userId of recipients) {
+    notifPromises.push(
+      addDoc(collection(db, COLLECTION.NOTIFICATIONS), {
+        userId,
+        type: config.type,
+        title: config.title,
+        body: config.body(order.id),
+        data: { orderId: order.id, status: newStatus },
+        read: false,
+        createdAt: serverTimestamp(),
+      }).catch((err) => console.warn('[orderService] notif error:', err))
+    );
+  }
+  await Promise.all(notifPromises);
+}
+
+// Helper for fetching existing voucher info (used by checkout)
+export { getDoc as _getDoc };

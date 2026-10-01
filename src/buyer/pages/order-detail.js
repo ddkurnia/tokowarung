@@ -8,7 +8,9 @@ import { toast, confirmDialog, showModal } from '../../components/feedback.js';
 import { getOrderById, updateOrderStatus, cancelOrder, verifyDeliveryOtp } from '../../services/orderService.js';
 import { submitManualPaymentProof } from '../../services/paymentService.js';
 import { createDispute } from '../../services/disputeService.js';
+import { getOrCreateConversation } from '../../services/chatService.js';
 import { showReportModal } from '../../components/reportModal.js';
+import { showReviewModal } from '../../components/reviewModal.js';
 import { navigate } from '../../router/router.js';
 import { formatRupiah, formatDate } from '../../utils/helpers.js';
 import { ORDER_STATUS, PAYMENT_METHOD } from '../../utils/constants.js';
@@ -320,6 +322,95 @@ function renderActions(order, user, container) {
       },
     })
   );
+
+  // Chat buttons (when order active)
+  if ([ORDER_STATUS.PAID, ORDER_STATUS.SELLER_CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY_FOR_PICKUP, ORDER_STATUS.COURIER_ASSIGNED, ORDER_STATUS.PICKED_UP, ORDER_STATUS.DELIVERING, ORDER_STATUS.ARRIVED, ORDER_STATUS.DELIVERED].includes(order.orderStatus)) {
+    actions.push(
+      el('button', {
+        className: 'btn btn-secondary btn-block',
+        html: '💬 Chat dengan Seller',
+        onClick: async () => {
+          if (!user) return;
+          try {
+            const conv = await getOrCreateConversation({
+              buyerId: user.uid,
+              sellerId: order.sellerId,
+              orderId: order.id,
+              type: 'BUYER_SELLER',
+            });
+            navigate('/chats/' + conv.conversationId);
+          } catch (err) { toast.error(err.message); }
+        },
+      })
+    );
+    if (order.courierId && [ORDER_STATUS.COURIER_ASSIGNED, ORDER_STATUS.COURIER_GOING_TO_PICKUP, ORDER_STATUS.PICKED_UP, ORDER_STATUS.DELIVERING, ORDER_STATUS.ARRIVED].includes(order.orderStatus)) {
+      actions.push(
+        el('button', {
+          className: 'btn btn-secondary btn-block',
+          html: '💬 Chat dengan Kurir',
+          onClick: async () => {
+            if (!user) return;
+            try {
+              const conv = await getOrCreateConversation({
+                buyerId: user.uid,
+                courierId: order.courierId,
+                orderId: order.id,
+                type: 'BUYER_COURIER',
+              });
+              navigate('/chats/' + conv.conversationId);
+            } catch (err) { toast.error(err.message); }
+          },
+        })
+      );
+    }
+  }
+
+  // Rate order (when DELIVERED)
+  if (order.orderStatus === ORDER_STATUS.DELIVERED) {
+    actions.push(
+      el('div', { className: 'banner banner-success mt-2' }, [
+        el('div', {}, [
+          el('h3', { className: 'banner__title', text: '⭐ Beri Rating' }),
+          el('p', { className: 'banner__desc', text: 'Bagikan pengalamanmu. Bantu toko & kurir meningkatkan layanan.' }),
+        ]),
+      ])
+    );
+    actions.push(
+      el('button', {
+        className: 'btn btn-primary btn-block',
+        html: '⭐ Beri Rating Seller',
+        onClick: () => showReviewModal({
+          user, orderId: order.id, targetType: 'SELLER',
+          targetId: order.sellerId, targetName: order.sellerName || 'Toko',
+        }),
+      })
+    );
+    if (order.courierId) {
+      actions.push(
+        el('button', {
+          className: 'btn btn-primary btn-block',
+          html: '⭐ Beri Rating Kurir',
+          onClick: () => showReviewModal({
+            user, orderId: order.id, targetType: 'COURIER',
+            targetId: order.courierId, targetName: 'Kurir',
+          }),
+        })
+      );
+    }
+    // Rate each product
+    (order.items || []).forEach((item) => {
+      actions.push(
+        el('button', {
+          className: 'btn btn-secondary btn-block',
+          html: `⭐ Beri Rating: ${item.name}`,
+          onClick: () => showReviewModal({
+            user, orderId: order.id, targetType: 'PRODUCT',
+            targetId: item.productId, targetName: item.name,
+          }),
+        })
+      );
+    });
+  }
 
   if (actions.length === 0) return null;
   return el('div', { className: 'mt-4' }, actions);
