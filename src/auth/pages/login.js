@@ -79,32 +79,22 @@ export default async function LoginPage({ queryParams }) {
     btn.textContent = 'Memproses…';
     try {
       const { profile } = await loginWithEmail(email, password);
+      console.log('[login] Profile received:', profile?.role || 'null');
       toast.success('Berhasil masuk. Selamat datang!');
 
-      // If profile loaded → redirect based on role
-      if (profile?.role) {
+      // If profile loaded with role → redirect based on role
+      if (profile?.role && profile.role !== 'BUYER') {
+        // SELLER/COURIER/ADMIN → redirect ke dashboard mereka
         const dest = resolveRoleRoute(profile.role, redirect);
+        console.log('[login] Redirecting to:', dest);
         navigate(dest);
+      } else if (profile?.role === 'BUYER') {
+        // BUYER → home page
+        navigate('/');
       } else {
-        // Profile belum loaded — wait for onAuthChange to fire with profile
-        // Then redirect based on role
-        let redirected = false;
-        const unsub = onAuthChange(({ profile: p } = {}) => {
-          if (p?.role && !redirected) {
-            redirected = true;
-            unsub();
-            const dest = resolveRoleRoute(p.role, redirect);
-            navigate(dest);
-          }
-        });
-        // Fallback: after 5s, redirect to home if still no profile
-        setTimeout(() => {
-          if (!redirected) {
-            redirected = true;
-            unsub();
-            navigate('/');
-          }
-        }, 5000);
+        // Profile null → go to profile page (which will auto-detect role & redirect)
+        console.log('[login] Profile null, going to /profile for auto-detect');
+        navigate('/profile');
       }
     } catch (err) {
       console.error('[login] error:', err);
