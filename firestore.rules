@@ -74,9 +74,9 @@ service cloud.firestore {
 
     // ----- USERS -----
     match /users/{userId} {
-      // Public profile info bisa dibaca siapa saja (untuk display store name, dsb)
-      // TAPI field sensitif harus di-strip di Cloud Function (untuk MVP, expose tidak sensitif)
-      allow read: if isSignedIn() && (isOwnData(userId) || isAdmin() || isSeller() || isCourier() || isBuyer());
+      // Simplified: any signed-in user can read user profiles (for marketplace display)
+      // Sensitive fields (identityNumber, bankAccount) are NOT in this collection
+      allow read: if isSignedIn();
 
       // User hanya boleh update data miliknya sendiri, TIDAK boleh update role (kunci keamanan!)
       // Admin bisa update status user
