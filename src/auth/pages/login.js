@@ -5,7 +5,7 @@
 
 import { el } from '../../components/ui.js';
 import { toast } from '../../components/feedback.js';
-import { loginWithEmail, loginWithGoogle, resetPassword } from '../../auth/authService.js';
+import { loginWithEmail, loginWithGoogle, resetPassword, onAuthChange } from '../../auth/authService.js';
 import { navigate } from '../../router/router.js';
 import { ROLE } from '../../utils/constants.js';
 import { isValidEmail } from '../../utils/helpers.js';
@@ -80,8 +80,32 @@ export default async function LoginPage({ queryParams }) {
     try {
       const { profile } = await loginWithEmail(email, password);
       toast.success('Berhasil masuk. Selamat datang!');
-      const dest = resolveRoleRoute(profile?.role, redirect);
-      navigate(dest);
+
+      // If profile loaded → redirect based on role
+      if (profile?.role) {
+        const dest = resolveRoleRoute(profile.role, redirect);
+        navigate(dest);
+      } else {
+        // Profile belum loaded — wait for onAuthChange to fire with profile
+        // Then redirect based on role
+        let redirected = false;
+        const unsub = onAuthChange(({ profile: p } = {}) => {
+          if (p?.role && !redirected) {
+            redirected = true;
+            unsub();
+            const dest = resolveRoleRoute(p.role, redirect);
+            navigate(dest);
+          }
+        });
+        // Fallback: after 5s, redirect to home if still no profile
+        setTimeout(() => {
+          if (!redirected) {
+            redirected = true;
+            unsub();
+            navigate('/');
+          }
+        }, 5000);
+      }
     } catch (err) {
       console.error('[login] error:', err);
       toast.error(humanizeAuthError(err));

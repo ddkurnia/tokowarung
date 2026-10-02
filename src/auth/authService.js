@@ -262,7 +262,14 @@ export async function loginWithEmail(email, password) {
   ensureFirebaseConfigured('Login');
   const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
   currentUser = cred.user;
+
+  // Fetch profile — retry if first attempt returns null (timing issue dengan Firestore)
   currentUserProfile = await fetchUserProfile(cred.user.uid);
+  if (!currentUserProfile) {
+    // Retry after 1.5s (Firestore might need time to sync after auth state change)
+    await new Promise((r) => setTimeout(r, 1500));
+    currentUserProfile = await fetchUserProfile(cred.user.uid);
+  }
 
   // Update lastLoginAt
   try {
