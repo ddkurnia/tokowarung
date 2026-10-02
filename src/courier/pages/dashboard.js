@@ -102,26 +102,35 @@ export default async function CourierDashboard({ user, profile }) {
 
 function renderOnlineCard(container, courierProfile, courierId) {
   if (!courierProfile) {
-    // Check verification status first - if not verified, show verification banner
+    // No profile yet — show info + link ke settings
     container.replaceChildren(
       el('div', { className: 'banner banner-warning' }, [
         el('div', {}, [
           el('h3', { className: 'banner__title', text: 'Profil kurir belum lengkap' }),
-          el('p', { className: 'banner__desc', text: 'Lengkapi data diri & dokumen untuk mulai menerima order.' }),
+          el('p', { className: 'banner__desc', text: 'Lengkapi data diri & dokumen untuk mulai menerima order. Admin akan verify dalam 1x24 jam.' }),
         ]),
-        el('button', { className: 'btn btn-primary btn-sm', text: 'Lengkapi', onClick: () => toast.info('Halaman verifikasi kurir akan tersedia segera.') }),
+        el('button', { className: 'btn btn-primary btn-sm', text: 'Lengkapi profil', onClick: () => toast.info('Halaman verifikasi kurir akan tersedia segera. Untuk testing, minta admin verify via Firebase Console.') }),
       ])
     );
     return;
   }
 
-  // If pending verification, show banner
+  // If pending verification, show banner TAPI tetap tampilkan stats & info
   if (courierProfile.status === 'PENDING_VERIFICATION') {
     container.replaceChildren(
       el('div', { className: 'banner banner-warning' }, [
         el('div', {}, [
           el('h3', { className: 'banner__title', text: 'Akun dalam proses verifikasi' }),
-          el('p', { className: 'banner__desc', text: 'Tunggu admin memverifikasi akunmu. Proses biasanya 1x24 jam.' }),
+          el('p', { className: 'banner__desc', text: 'Tunggu admin memverifikasi akunmu. Proses biasanya 1x24 jam. Untuk testing cepat, admin bisa set status ke VERIFIED di Firebase Console → couriers/' + courierId.slice(0, 8) + '...' }),
+        ]),
+      ]),
+      el('div', { className: 'online-card' }, [
+        el('div', { className: 'online-card__status' }, [
+          el('div', { className: 'online-card__indicator' }),
+          el('div', {}, [
+            el('h2', { className: 'online-card__title', text: 'Status: Belum Verified' }),
+            el('p', { className: 'text-sm text-muted', text: 'Setelah verified, kamu bisa mulai online & menerima order.' }),
+          ]),
         ]),
       ])
     );

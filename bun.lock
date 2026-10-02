@@ -6,6 +6,7 @@
       "name": "tokowarung",
       "dependencies": {
         "firebase": "^10.12.2",
+        "leaflet": "^1.9.4",
       },
       "devDependencies": {
         "vite": "^5.3.1",
@@ -254,6 +255,8 @@
     "idb": ["idb@7.1.1", "", {}, ""],
 
     "is-fullwidth-code-point": ["is-fullwidth-code-point@3.0.0", "", {}, ""],
+
+    "leaflet": ["leaflet@1.9.4", "", {}, "sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA=="],
 
     "lodash.camelcase": ["lodash.camelcase@4.3.0", "", {}, ""],
 

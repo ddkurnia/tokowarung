@@ -52,21 +52,22 @@ async function loadDashboard(container, uid, profile) {
   try {
     const seller = await getSellerProfile(uid).catch(() => null);
 
-    // Verification banner kalau belum verified
+    container.replaceChildren();
+
+    // Verification banner (tapi TETAP tampilkan dashboard lengkap di bawahnya)
     if (seller && seller.verificationStatus !== 'VERIFIED') {
-      container.replaceChildren(
-        el('div', { className: 'banner banner-warning' }, [
+      container.appendChild(
+        el('div', { className: 'banner banner-warning mb-6' }, [
           el('div', {}, [
             el('h3', { className: 'banner__title', text: 'Toko belum terverifikasi' }),
-            el('p', { className: 'banner__desc', text: 'Lengkapi data & dokumen toko untuk mulai berjualan.' }),
+            el('p', { className: 'banner__desc', text: 'Lengkapi data & dokumen toko untuk mulai berjualan. Sementara itu, kamu bisa explore dashboard.' }),
           ]),
           el('button', { className: 'btn btn-primary btn-sm', text: 'Verifikasi sekarang', onClick: () => navigate('/seller/settings') }),
         ])
       );
-      return;
     }
 
-    // Stats
+    // Stats (tetap tampilkan walau belum verified)
     const stats = [
       { label: 'Omzet Hari Ini', value: formatRupiah(seller?.todayRevenue || 0), color: 'primary' },
       { label: 'Omzet Bulan Ini', value: formatRupiah(seller?.monthRevenue || 0), color: 'success' },
@@ -75,8 +76,6 @@ async function loadDashboard(container, uid, profile) {
       { label: 'Saldo Tertunda', value: formatRupiah(seller?.wallet?.pending || 0), color: 'warning' },
       { label: 'Rating Toko', value: (seller?.rating || 0).toFixed(1) + ' ⭐', color: 'primary' },
     ];
-
-    container.replaceChildren();
     container.appendChild(
       el('div', { className: 'stats-grid' }, stats.map((s) =>
         el('div', { className: 'stat-card stat-card--' + s.color }, [
