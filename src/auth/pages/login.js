@@ -142,7 +142,8 @@ export default async function LoginPage({ queryParams }) {
 
 // ----- Helpers -----
 function resolveRoleRoute(role, redirect) {
-  if (redirect && redirect !== '/login' && redirect !== '/register') return redirect;
+  // Only use redirect if it's a SPECIFIC path (not default '/', '/login', '/register')
+  if (redirect && !['/', '/login', '/register'].includes(redirect)) return redirect;
   switch (role) {
     case ROLE.SELLER: return '/seller';
     case ROLE.COURIER: return '/courier';

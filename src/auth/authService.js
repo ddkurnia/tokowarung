@@ -263,12 +263,44 @@ export async function loginWithEmail(email, password) {
   const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
   currentUser = cred.user;
 
-  // Fetch profile — retry if first attempt returns null (timing issue dengan Firestore)
-  currentUserProfile = await fetchUserProfile(cred.user.uid);
-  if (!currentUserProfile) {
-    // Retry after 1.5s (Firestore might need time to sync after auth state change)
-    await new Promise((r) => setTimeout(r, 1500));
+  // Force token refresh — ensures Firestore security rules see the new auth state
+  try {
+    await cred.user.getIdToken(true);
+  } catch (e) {
+    console.warn('[auth] Token refresh failed:', e.message);
+  }
+
+  // Fetch profile — retry 3x with increasing delay
+  for (let attempt = 1; attempt <= 3; attempt++) {
     currentUserProfile = await fetchUserProfile(cred.user.uid);
+    if (currentUserProfile) break;
+    if (attempt < 3) {
+      console.log(`[auth] Profile fetch attempt ${attempt} returned null, retrying in ${attempt}s...`);
+      await new Promise((r) => setTimeout(r, attempt * 1000));
+    }
+  }
+
+  // If still null after retries, try to CREATE a basic profile from Auth data
+  if (!currentUserProfile) {
+    console.warn('[auth] Profile not found after 3 attempts. Creating fallback profile...');
+    try {
+      const fallbackProfile = {
+        uid: cred.user.uid,
+        email: cred.user.email || '',
+        displayName: cred.user.displayName || '',
+        photoURL: cred.user.photoURL || '',
+        role: 'BUYER',
+        status: 'ACTIVE',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+      };
+      await setDoc(doc(db, COLLECTION.USERS, cred.user.uid), fallbackProfile, { merge: true });
+      currentUserProfile = fallbackProfile;
+      console.log('[auth] Fallback profile created');
+    } catch (err) {
+      console.error('[auth] Failed to create fallback profile:', err);
+    }
   }
 
   // Update lastLoginAt
